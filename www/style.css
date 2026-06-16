@@ -1,0 +1,233 @@
+/* NickDegs — iOS 26 "Liquid Glass" tasarım dili
+   Buzlu cam materyaller · derinlik · yay (spring) animasyonları · yüzen pill tab bar */
+:root{
+  --bg:#05070c; --bg2:#0a0e17;
+  --fg:#f2f5fb; --mut:#9aa3b4;
+  --acc:#0a84ff;        /* iOS sistem mavisi */
+  --acc-grad:linear-gradient(135deg,#0a84ff,#5e5ce6);
+  --red:#ff453a; --green:#30d158;
+  /* cam materyaller */
+  --glass:rgba(22,27,38,.62);
+  --glass-2:rgba(30,36,50,.55);
+  --glass-brd:rgba(255,255,255,.10);
+  --glass-hi:rgba(255,255,255,.14);   /* specular highlight */
+  --blur:saturate(180%) blur(28px);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+  --ease:cubic-bezier(.32,.72,0,1);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  font-size:17px;letter-spacing:-.01em;
+  background:
+    radial-gradient(120% 80% at 80% -10%,rgba(94,92,230,.18),transparent 60%),
+    radial-gradient(120% 80% at 0% 110%,rgba(10,132,255,.16),transparent 55%),
+    var(--bg);
+}
+.screen{display:none;height:100vh;height:100dvh;flex-direction:column}
+.screen.active{display:flex;animation:fadeIn .5s var(--ease)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+/* ---------- LOGIN ---------- */
+#login{align-items:center;justify-content:center;padding:24px}
+.login-box{width:100%;max-width:370px;text-align:center;padding:34px 26px;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-brd);border-radius:32px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 var(--glass-hi);
+  animation:rise .7s var(--spring)}
+@keyframes rise{from{opacity:0;transform:translateY(40px) scale(.94)}to{opacity:1;transform:none}}
+.logo{font-size:40px;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(180deg,#fff,#aeb6c6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);margin:6px 0 26px;font-size:14.5px}
+.login-box input{width:100%;padding:16px 18px;margin:8px 0;border:1px solid var(--glass-brd);
+  border-radius:16px;background:rgba(255,255,255,.06);color:var(--fg);font-size:17px;
+  transition:border-color .3s,background .3s}
+.login-box input:focus{outline:0;border-color:var(--acc);background:rgba(10,132,255,.10)}
+.login-box button{margin-top:18px;font-size:17px;width:100%;padding:17px}
+.err{color:var(--red);margin-top:14px;font-size:14px;min-height:18px}
+
+/* ---------- LIQUID GLASS BUTON (saydam cam + rim + sheen + sıvı dalga) ---------- */
+.login-box button,.card .play,.glass-btn,header button,#closePlayer{
+  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.42);
+  color:#fff;font-weight:700;border-radius:16px;cursor:pointer;isolation:isolate;
+  text-shadow:0 1px 3px rgba(0,0,0,.45);
+  /* GERÇEK iOS 26 Liquid Glass: renksiz cam, arkasını parlatıp kırar */
+  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
+  backdrop-filter:saturate(170%) brightness(1.4) blur(7px);
+  -webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(7px);
+  box-shadow:
+    0 6px 18px rgba(0,0,0,.38),
+    inset 0 1.5px 0 rgba(255,255,255,.9),       /* üst kenar specular rim */
+    inset 0 -5px 14px rgba(255,255,255,.14),
+    inset 0 0 22px rgba(255,255,255,.12);
+  transition:transform .28s var(--spring),box-shadow .3s var(--ease),filter .3s}
+.card .play{border-radius:14px}
+/* cam refraksiyon: üstte parlak lens katmanı */
+.login-box button::before,.card .play::before,.glass-btn::before,header button::before,#closePlayer::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
+  background:radial-gradient(120% 90% at 50% -20%,rgba(255,255,255,.5),transparent 60%)}
+/* sürekli yavaş ışık süzülmesi (sheen) — cam "canlı" hisset */
+.login-box button::after,.card .play::after,.glass-btn::after,header button::after,#closePlayer::after{
+  content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;z-index:-1;
+  transform:skewX(-22deg);
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:sheen 4.5s ease-in-out infinite}
+@keyframes sheen{0%,12%{left:-70%}55%,100%{left:140%}}
+.login-box button:active,.card .play:active,.glass-btn:active,header button:active,#closePlayer:active{
+  transform:scale(.93);filter:brightness(1.3);
+  box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 0 30px rgba(255,255,255,.28)}
+/* basınca sıvı dalga (JS ile konumlanır) */
+.ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:-1;
+  background:radial-gradient(circle,rgba(255,255,255,.7),rgba(255,255,255,0) 70%);
+  transform:translate(-50%,-50%) scale(0);animation:ripple .6s var(--ease) forwards}
+@keyframes ripple{to{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
+
+/* ---------- HEADER (glass, içerik altından kayar) ---------- */
+header{position:absolute;top:0;left:0;right:0;z-index:20;
+  display:flex;align-items:flex-end;justify-content:space-between;
+  padding:max(16px,env(safe-area-inset-top)) 20px 12px;
+  font-size:30px;font-weight:800;letter-spacing:-.02em;
+  background:linear-gradient(180deg,rgba(5,7,12,.86),rgba(5,7,12,.30) 70%,transparent);
+  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
+  -webkit-mask:linear-gradient(180deg,#000 60%,transparent)}
+header #title{transition:opacity .35s var(--ease)}
+header button{font-size:13px;font-weight:600;padding:8px 15px;border-radius:20px}
+
+/* ---------- TABS / SCROLL ---------- */
+.tab{display:none;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.tab.active{display:block;animation:tabIn .45s var(--ease)}
+@keyframes tabIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.list{padding:calc(env(safe-area-inset-top) + 78px) 16px 130px}
+
+/* ---------- KARTLAR (cam + staggered giriş) ---------- */
+.card,.summary,.kv{
+  background:var(--glass-2);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-brd);box-shadow:0 12px 34px rgba(0,0,0,.40),inset 0 1px 0 var(--glass-hi);
+  animation:cardIn .55s var(--spring) backwards}
+@keyframes cardIn{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
+.list>*:nth-child(1){animation-delay:.02s}.list>*:nth-child(2){animation-delay:.08s}
+.list>*:nth-child(3){animation-delay:.14s}.list>*:nth-child(4){animation-delay:.20s}
+.list>*:nth-child(5){animation-delay:.26s}.list>*:nth-child(n+6){animation-delay:.32s}
+
+.card{border-radius:22px;padding:16px;margin-bottom:13px;display:flex;align-items:center;gap:15px;
+  transition:transform .3s var(--spring)}
+.card:active{transform:scale(.975)}
+.card .ic{font-size:32px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.07);border-radius:16px;border:1px solid var(--glass-brd)}
+.card .meta{flex:1;min-width:0}
+.card .meta .t{font-weight:700;font-size:17px}
+.card .meta .d{color:var(--mut);font-size:13.5px;margin-top:3px}
+.card .play{font-size:15px;padding:11px 18px}
+.summary{border-radius:22px;padding:18px;margin-bottom:13px;line-height:1.55;font-size:15.5px;white-space:pre-wrap}
+.kv{border-radius:18px;padding:17px 20px;margin-bottom:11px;display:flex;justify-content:space-between;
+  align-items:center;font-size:16.5px}
+.kv b{font-size:20px;background:var(--acc-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- GPS ---------- */
+#map{height:58vh;width:100%;filter:saturate(1.05)}
+.leaflet-container{background:var(--bg2)!important}
+.gpsinfo{padding:14px 16px 130px}
+.gpschip{display:inline-flex;align-items:center;gap:9px;background:var(--glass-2);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-brd);
+  border-radius:16px;padding:11px 16px;margin:7px 7px 0 0;font-size:14px;font-weight:600;
+  box-shadow:inset 0 1px 0 var(--glass-hi)}
+.dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.04)}
+.on{background:var(--green);box-shadow:0 0 12px var(--green),0 0 0 4px rgba(48,209,88,.15);animation:pulse 2s infinite}
+.off{background:#555}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ---------- YÜZEN PILL TAB BAR (Liquid Glass) ---------- */
+.tabbar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);
+  transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:7px;z-index:20;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--glass-brd);border-radius:30px;
+  box-shadow:0 18px 50px rgba(0,0,0,.6),inset 0 1px 0 var(--glass-hi)}
+/* kayan gösterge — GERÇEK iOS 26 Liquid Glass: renksiz/şeffaf cam mercek
+   arkasını kırar+büyütür (brightness/saturate), parlak kenar (rim) + üst specular */
+.tab-ind{position:absolute;top:7px;left:0;height:calc(100% - 14px);width:0;border-radius:22px;z-index:0;
+  overflow:hidden;border:1px solid rgba(255,255,255,.42);
+  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
+  backdrop-filter:saturate(170%) brightness(1.4) blur(6px);
+  -webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(6px);
+  box-shadow:
+    0 5px 18px rgba(0,0,0,.42),
+    inset 0 1.5px 0 rgba(255,255,255,.9),        /* üst kenar specular */
+    inset 0 -5px 14px rgba(255,255,255,.14),
+    inset 0 0 24px rgba(255,255,255,.12);
+  transition:transform .55s var(--spring),width .55s var(--spring)}
+/* üst cam lens parlaması (refraksiyon highlight) */
+.tab-ind::before{content:"";position:absolute;left:9%;right:9%;top:2px;height:44%;border-radius:20px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);pointer-events:none}
+/* hareketli ışık süzülmesi */
+.tab-ind::after{content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;
+  transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:sheen 4.5s ease-in-out infinite}
+/* yatay sekme: ikon + (aktifte) yanında açılan etiket */
+.tabbar button{position:relative;z-index:1;background:none;border:0;color:var(--mut);font-size:21px;
+  padding:9px 14px;border-radius:22px;display:flex;flex-direction:row;align-items:center;white-space:nowrap;
+  transition:color .4s var(--ease),transform .3s var(--spring)}
+.tabbar button span{max-width:0;opacity:0;overflow:hidden;font-size:13px;font-weight:600;letter-spacing:-.01em;
+  transition:max-width .55s var(--spring),opacity .35s var(--ease),margin-left .55s var(--spring)}
+.tabbar button.active{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45)}
+.tabbar button.active span{max-width:96px;opacity:1;margin-left:7px}
+.tabbar button.measure span{transition:none}
+.tabbar button:active{transform:scale(.9)}
+
+/* ---------- VIDEO MODAL (glass backdrop + spring) ---------- */
+.modal{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:18px;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.modal.active{display:flex;animation:fadeIn .35s var(--ease)}
+.modal-in{width:100%;max-width:540px;position:relative;animation:modalIn .55s var(--spring)}
+@keyframes modalIn{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
+.modal-in video{width:100%;border-radius:22px;background:#000;
+  box-shadow:0 30px 80px rgba(0,0,0,.7),0 0 0 1px var(--glass-brd)}
+#closePlayer{position:absolute;top:-46px;right:0;width:40px;height:40px;border-radius:50%;
+  color:#fff;font-size:18px}
+#vidMeta{color:var(--mut);text-align:center;margin-top:14px;font-size:14.5px;font-weight:600}
+
+.empty{color:var(--mut);text-align:center;padding:60px 20px;font-size:15px}
+
+/* =====================================================================
+   RESPONSIVE — iOS 26 destekli TÜM iPhone'lar (araştırıldı 2026-06-16)
+   CSS viewport aralığı: 375pt (SE 2020/22, 12/13 mini, 11 Pro) →
+   440pt (16 Pro Max, 17 Pro Max). Arada: 390/393/402 (12–17, Air),
+   414 (11/XR), 428/430 (Plus & Pro Max). Yükseklik 667 (SE) → 956.
+   Güvenli alanlar: Dynamic Island / çentik / Touch ID home — env() ile.
+   ===================================================================== */
+/* Akışkan taban: metin/boşluk 375→440 arası ölçeklenir (clamp) */
+html,body{font-size:clamp(15.5px,4.15vw,18px)}
+.list{max-width:600px;margin:0 auto;
+  padding-left:clamp(12px,4vw,20px);padding-right:clamp(12px,4vw,20px)}
+.gpsinfo{max-width:600px;margin:0 auto}
+.card{padding:clamp(13px,3.6vw,18px);gap:clamp(11px,3vw,16px)}
+.card .ic{width:clamp(46px,13vw,58px);height:clamp(46px,13vw,58px);font-size:clamp(26px,7vw,33px)}
+.tabbar{max-width:min(440px,94vw)}
+.tabbar button{padding:9px clamp(11px,3.8vw,18px)}
+
+/* Çok küçük & KISA ekran (iPhone SE 375×667, mini) — dikey sıkışmayı aç */
+@media (max-height:680px){
+  header{font-size:25px;padding-top:max(10px,env(safe-area-inset-top))}
+  .list{padding-top:calc(env(safe-area-inset-top) + 64px);padding-bottom:108px}
+  .tabbar{bottom:calc(env(safe-area-inset-bottom) + 9px)}
+  .tabbar button{font-size:19px;padding:7px 13px}
+  .card{margin-bottom:10px}
+  #map{height:50vh}
+}
+/* Touch ID cihazlar (SE) alt güvenli alan vermez → min boşluk garanti */
+@supports not (padding:max(0px)){ .tabbar{bottom:14px} }
+
+/* Büyük Pro Max / Plus (428–440pt) — içerik çok yayılmasın, ferah dursun */
+@media (min-width:430px){
+  html,body{font-size:18px}
+  header{padding-left:24px;padding-right:24px}
+}
+/* Yatay yönelim — tab bar ve harita uyumu */
+@media (orientation:landscape) and (max-height:520px){
+  #map{height:78vh}
+  .list{padding-top:calc(env(safe-area-inset-top) + 58px)}
+}
+/* spinner */
+.empty.load::after{content:"";display:block;width:26px;height:26px;margin:16px auto 0;
+  border:2.5px solid rgba(255,255,255,.15);border-top-color:var(--acc);border-radius:50%;
+  animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}

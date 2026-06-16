@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0b0e14">
+<title>NickDegs</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- LOGIN -->
+<section id="login" class="screen active">
+  <div class="login-box">
+    <div class="logo">🏍️ NickDegs</div>
+    <p class="sub">Rotalarım · Aktivite · Canlı Konum</p>
+    <input id="u" placeholder="Kullanıcı" autocapitalize="none" autocomplete="username">
+    <input id="p" type="password" placeholder="Parola" autocomplete="current-password">
+    <button id="loginBtn">Giriş</button>
+    <div id="loginErr" class="err"></div>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="app" class="screen">
+  <header><span id="title">Rotalarım</span><button id="logout">çıkış</button></header>
+
+  <div id="tab-rides" class="tab active"><div id="rides" class="list"></div></div>
+  <div id="tab-acts" class="tab"><div id="acts" class="list"></div></div>
+  <div id="tab-gps" class="tab"><div id="map"></div><div id="gpsInfo" class="gpsinfo"></div></div>
+  <div id="tab-stats" class="tab"><div id="stats" class="list"></div></div>
+
+  <nav class="tabbar">
+    <span class="tab-ind"></span>
+    <button data-tab="rides" class="active">🎬<span>Rotalar</span></button>
+    <button data-tab="acts">📊<span>Aktivite</span></button>
+    <button data-tab="gps">🗺️<span>GPS</span></button>
+    <button data-tab="stats">📈<span>İstatistik</span></button>
+  </nav>
+</section>
+
+<!-- VIDEO MODAL -->
+<div id="player" class="modal"><div class="modal-in">
+  <button id="closePlayer">✕</button>
+  <video id="vid" controls playsinline></video>
+  <div id="vidMeta"></div>
+</div></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

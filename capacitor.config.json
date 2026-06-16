@@ -1,0 +1,11 @@
+{
+  "appId": "com.nickdegs.kisisel",
+  "appName": "NickDegs",
+  "webDir": "www",
+  "server": { "iosScheme": "https" },
+  "ios": { "contentInset": "always" },
+  "plugins": {
+    "SplashScreen": { "launchShowDuration": 800, "backgroundColor": "#05070c" },
+    "StatusBar": { "style": "DARK", "backgroundColor": "#05070c" }
+  }
+}
