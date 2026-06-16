@@ -1,6 +1,6 @@
 {
   "appId": "com.nickdegs.kisisel",
-  "appName": "NickDegs",
+  "appName": "Move Log",
   "webDir": "www",
   "server": { "iosScheme": "https" },
   "ios": { "contentInset": "always" },
