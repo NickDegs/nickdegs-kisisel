@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#f4efe4">
+<meta name="theme-color" content="#05070c">
 <title>Move Log</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
@@ -28,9 +28,12 @@
 <section id="app" class="screen">
   <header>
     <span id="title">Move Log</span>
-    <button id="logout" class="iconbtn" aria-label="Sign out">
-      <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h11"/></svg>
-    </button>
+    <div class="hbtns">
+      <button id="themeBtn" class="iconbtn" aria-label="Theme"><svg id="themeIcon" viewBox="0 0 24 24"></svg></button>
+      <button id="logout" class="iconbtn" aria-label="Sign out">
+        <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h11"/></svg>
+      </button>
+    </div>
   </header>
 
   <div id="tab-rides" class="tab active"><div id="rides" class="list"></div></div>

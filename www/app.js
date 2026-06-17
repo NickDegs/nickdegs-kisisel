@@ -68,16 +68,16 @@ const demoUser = () => (DEMO_NAMES[LANG] || DEMO_NAMES.en)[0];
 
 /* ---------------- TİPOGRAFİ / FONT SEÇİCİ (Premium) ---------------- */
 const FONTS = [
-  { id:"editorial", label:"Editorial", css:"ui-serif,'New York','Iowan Old Style',Palatino,Georgia,serif", free:true },
+  { id:"system",    label:"Default",   css:"-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',system-ui,Roboto,sans-serif", free:true },
+  { id:"editorial", label:"Editorial", css:"ui-serif,'New York','Iowan Old Style',Palatino,Georgia,serif" },
   { id:"classic",   label:"Classic",   css:"Georgia,'Times New Roman','Noto Serif',serif" },
   { id:"elegant",   label:"Elegant",   css:"'Palatino Linotype',Palatino,'Iowan Old Style','Book Antiqua',serif" },
-  { id:"modern",    label:"Modern",    css:"-apple-system,'SF Pro Text','Segoe UI',system-ui,sans-serif" },
   { id:"rounded",   label:"Rounded",   css:"ui-rounded,'SF Pro Rounded','Hiragino Maru Gothic ProN',system-ui,sans-serif" },
 ];
 const isPremium = () => localStorage.getItem("nd_premium") === "1" || DEMO;
 function applyFont(id) {
   const f = FONTS.find(x => x.id === id) || FONTS[0];
-  document.documentElement.style.setProperty("--serif", f.css);
+  document.documentElement.style.setProperty("--appfont", f.css);
   localStorage.setItem("nd_font", f.id);
 }
 function chooseFont(id) {
@@ -91,7 +91,7 @@ function buyPremium() {
   // TODO: gerçek StoreKit IAP (Capacitor eklentisi) — şimdilik kilidi açar
   localStorage.setItem("nd_premium", "1"); closePaywall(); loadProfile();
 }
-applyFont(localStorage.getItem("nd_font") || "editorial");
+applyFont(localStorage.getItem("nd_font") || "system");
 const PREMIUM_T = {
   en:{font:"Typography",unlock:"Unlock all fonts",pdesc:"Choose the typeface you love. One-time purchase.",buy:"Unlock Premium",later:"Maybe later",premium:"PREMIUM"},
   tr:{font:"Tipografi",unlock:"Tüm fontların kilidini aç",pdesc:"Sevdiğin yazı tipini seç. Tek seferlik satın alma.",buy:"Premium'u Aç",later:"Belki sonra",premium:"PREMIUM"},
@@ -122,6 +122,28 @@ const FRIEND_T = {
   ar:{friends:"الأصدقاء",addFriend:"إضافة صديق",byUser:"بالاسم",invite:"رابط الدعوة",copy:"نسخ / مشاركة",add:"إضافة",friendErr:"المستخدم غير موجود",avTitle:"صورة الملف",pickEmoji:"اختر إيموجي",upload:"رفع صورة"},
 };
 const FT = FRIEND_T[LANG] || FRIEND_T.en;
+const THEME_T = {
+  en:{appearance:"Appearance",light:"Light",dark:"Dark"}, tr:{appearance:"Görünüm",light:"Açık",dark:"Koyu"},
+  de:{appearance:"Darstellung",light:"Hell",dark:"Dunkel"}, fr:{appearance:"Apparence",light:"Clair",dark:"Sombre"},
+  es:{appearance:"Apariencia",light:"Claro",dark:"Oscuro"}, it:{appearance:"Aspetto",light:"Chiaro",dark:"Scuro"},
+  pt:{appearance:"Aparência",light:"Claro",dark:"Escuro"}, ru:{appearance:"Оформление",light:"Светлая",dark:"Тёмная"},
+  ja:{appearance:"外観",light:"ライト",dark:"ダーク"}, zh:{appearance:"外观",light:"浅色",dark:"深色"},
+  ko:{appearance:"화면 모드",light:"라이트",dark:"다크"}, ar:{appearance:"المظهر",light:"فاتح",dark:"داكن"},
+};
+const TH = THEME_T[LANG] || THEME_T.en;
+const MOON = '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
+const SUN = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';
+function curTheme() { return document.documentElement.dataset.theme || "dark"; }
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t; localStorage.setItem("nd_theme", t);
+  const ic = $("#themeIcon"); if (ic) ic.innerHTML = (t === "dark" ? SUN : MOON);
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = (t === "dark" ? "#05070c" : "#eaeef5");
+}
+function toggleTheme() { applyTheme(curTheme() === "dark" ? "light" : "dark"); }
+(function initTheme() {
+  const q = new URLSearchParams(location.search).get("theme");
+  applyTheme(q || localStorage.getItem("nd_theme") || "dark");
+})();
 
 /* ---------------- ikonlar (SVG, emoji yok) ---------------- */
 const ICON = {
@@ -256,17 +278,24 @@ async function loadProfile() {
     // tipografi
     h += `<div class="sechead">${PT.font}</div>`;
     h += FONTS.map(f => {
-      const sel = (localStorage.getItem("nd_font") || "editorial") === f.id;
+      const sel = (localStorage.getItem("nd_font") || "system") === f.id;
       const locked = !f.free && !isPremium();
       return `<button class="fontrow${sel ? " sel" : ""}" data-font="${f.id}">
         <span style="font-family:${f.css}">${f.label}</span>
         ${locked ? `<span class="lock"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>` : (sel ? `<span class="chk"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span>` : "")}
       </button>`;
     }).join("");
+    // görünüm (açık/koyu)
+    h += `<div class="sechead">${TH.appearance}</div>
+      <div class="seg" id="themeSeg">
+        <button data-t="light" class="${curTheme()==="light"?"on":""}"><svg viewBox="0 0 24 24">${SUN}</svg>${TH.light}</button>
+        <button data-t="dark" class="${curTheme()==="dark"?"on":""}"><svg viewBox="0 0 24 24">${MOON}</svg>${TH.dark}</button>
+      </div>`;
     el.innerHTML = h;
     $("#editAv").onclick = openAvatarEditor;
     $("#addFriend").onclick = openAddFriend;
     el.querySelectorAll(".fontrow").forEach(b => b.onclick = () => chooseFont(b.dataset.font));
+    el.querySelectorAll("#themeSeg button").forEach(b => b.onclick = () => { applyTheme(b.dataset.t); loadProfile(); });
   } catch (e) { el.innerHTML = `<div class='empty'>${T.failed}</div>`; }
 }
 
@@ -360,6 +389,7 @@ applyI18n();
 $("#loginBtn").onclick = login;
 $("#p").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
 $("#logout").onclick = logout;
+$("#themeBtn").onclick = toggleTheme;
 $("#closePlayer").onclick = () => { $("#vid").pause(); $("#vid").src = ""; $("#player").classList.remove("active"); };
 document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 
