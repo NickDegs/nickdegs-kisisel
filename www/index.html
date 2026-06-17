@@ -12,7 +12,10 @@
 <!-- LOGIN -->
 <section id="login" class="screen active">
   <div class="login-box">
-    <div class="logo">🏍️ Move Log</div>
+    <div class="brandmark">
+      <svg viewBox="0 0 24 24"><path d="M7 4.5h7a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h8"/><circle cx="5" cy="4.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/></svg>
+    </div>
+    <div class="logo">Move Log</div>
     <p class="sub">Rotalarım · Aktivite · Canlı Konum</p>
     <input id="u" placeholder="Kullanıcı" autocapitalize="none" autocomplete="username">
     <input id="p" type="password" placeholder="Parola" autocomplete="current-password">
@@ -32,10 +35,18 @@
 
   <nav class="tabbar">
     <span class="tab-ind"></span>
-    <button data-tab="rides" class="active">🎬<span>Rotalar</span></button>
-    <button data-tab="acts">📊<span>Aktivite</span></button>
-    <button data-tab="gps">🗺️<span>GPS</span></button>
-    <button data-tab="stats">📈<span>İstatistik</span></button>
+    <button data-tab="rides" class="active" aria-label="Rotalar">
+      <svg viewBox="0 0 24 24"><path d="M7 4.5h7a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h8"/><circle cx="5" cy="4.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/></svg>
+      <span>Rotalar</span></button>
+    <button data-tab="acts" aria-label="Aktivite">
+      <svg viewBox="0 0 24 24"><path d="M3 12.5h4l2.2-6 3.4 12 2.6-9 1.6 3h4.2"/></svg>
+      <span>Aktivite</span></button>
+    <button data-tab="gps" aria-label="GPS">
+      <svg viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>
+      <span>GPS</span></button>
+    <button data-tab="stats" aria-label="İstatistik">
+      <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6" stroke-linecap="round"/></svg>
+      <span>İstatistik</span></button>
   </nav>
 </section>
 
