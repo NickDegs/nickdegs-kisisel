@@ -21,7 +21,9 @@ struct ProfileView: View {
     @State private var prof: Profile?
     @State private var friends: [Friend] = []
     @State private var stats: Stats?
-    @State private var showAvatar = false, showAddFriend = false, showPaywall = false
+    @State private var showAvatar = false
+    @State private var showAddFriend = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {

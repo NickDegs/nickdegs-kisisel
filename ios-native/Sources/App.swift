@@ -33,6 +33,7 @@ struct RootView: View {
             ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.
+        .task { if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" } }
     }
 }
 

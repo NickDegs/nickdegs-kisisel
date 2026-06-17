@@ -63,15 +63,15 @@ struct Convo: Codable, Identifiable, Hashable {
     func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
 
     func rides() async -> [Ride] {
-        (try? dec().decode([String:[Ride]].self, from: req("/api/rides"))["rides"]) ?? []
+        (try? dec().decode([String:[Ride]].self, from: await req("/api/rides"))["rides"]) ?? []
     }
-    func stats() async -> Stats? { try? dec().decode(Stats.self, from: req("/api/stats")) }
+    func stats() async -> Stats? { try? dec().decode(Stats.self, from: await req("/api/stats")) }
     func positions() async -> [Position] {
-        (try? dec().decode([String:[Position]].self, from: req("/api/gps/live"))["positions"]) ?? []
+        (try? dec().decode([String:[Position]].self, from: await req("/api/gps/live"))["positions"]) ?? []
     }
-    func profile() async -> Profile? { try? dec().decode(Profile.self, from: req("/api/profile")) }
+    func profile() async -> Profile? { try? dec().decode(Profile.self, from: await req("/api/profile")) }
     func friends() async -> [Friend] {
-        (try? dec().decode([String:[Friend]].self, from: req("/api/friends"))["friends"]) ?? []
+        (try? dec().decode([String:[Friend]].self, from: await req("/api/friends"))["friends"]) ?? []
     }
     func setAvatar(_ a: Avatar) async {
         let body: [String:Any] = ["avatar": ["type": a.type, "value": a.value ?? ""]]
@@ -87,11 +87,11 @@ struct Convo: Codable, Identifiable, Hashable {
         return (o["link"] as? String) ?? ""
     }
     func chatList() async -> [Convo] {
-        (try? dec().decode([String:[Convo]].self, from: req("/api/chat/list"))["conversations"]) ?? []
+        (try? dec().decode([String:[Convo]].self, from: await req("/api/chat/list"))["conversations"]) ?? []
     }
     func chatWith(_ other: String) async -> [Message] {
         struct R: Codable { var messages: [Message] }
-        return (try? dec().decode(R.self, from: req("/api/chat/with/" + other)).messages) ?? []
+        return (try? dec().decode(R.self, from: await req("/api/chat/with/" + other)).messages) ?? []
     }
     func send(_ to: String, _ text: String) async {
         _ = try? await req("/api/chat/send", method: "POST", body: ["to": to, "text": text])
