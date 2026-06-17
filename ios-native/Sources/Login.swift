@@ -4,6 +4,7 @@ struct LoginView: View {
     @EnvironmentObject var store: Store
     @State private var user = ""; @State private var pass = ""
     @State private var float = false
+    @State private var shown = false
     var body: some View {
         ZStack {
             AuroraBackground()
@@ -40,7 +41,13 @@ struct LoginView: View {
                 .buttonStyle(.glassyProminent()).padding(.top, 22)
             }
             .padding(28).frame(maxWidth: 400)
+            .scaleEffect(shown ? 1 : 0.96)
+            .opacity(shown ? 1 : 0)
+            .blur(radius: shown ? 0 : 6)
         }
-        .onAppear { float = true }
+        .onAppear {
+            float = true
+            withAnimation(.smooth(duration: 0.6)) { shown = true }
+        }
     }
 }

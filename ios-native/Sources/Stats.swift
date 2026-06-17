@@ -35,6 +35,6 @@ struct StatsView: View {
             Spacer()
             Text(v).font(.system(size: 22, weight: .bold)).foregroundStyle(Brand.gradient)
         }
-        .padding(.horizontal, 20).padding(.vertical, 16).glassPanel(18)
+        .padding(.horizontal, 20).padding(.vertical, 16).glassPanel(18).smoothAppear()
     }
 }

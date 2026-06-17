@@ -54,15 +54,37 @@ struct GlassButtonStyle: ButtonStyle {
             .foregroundStyle(prominent ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
             .padding(.vertical, 15).frame(maxWidth: .infinity)
             .glassCapsule(tint: prominent ? Brand.accent : tint)
-            .scaleEffect(configuration.isPressed ? 0.95 : 1)
-            .brightness(configuration.isPressed ? 0.06 : 0)
-            .animation(.spring(response: 0.4, dampingFraction: 0.6), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.965 : 1)
+            .brightness(configuration.isPressed ? 0.05 : 0)
+            .saturation(configuration.isPressed ? 1.1 : 1)
+            // en ince Apple springi: kısa, hafif jelimsi geri yaylanma
+            .animation(.snappy(duration: 0.30, extraBounce: 0.18), value: configuration.isPressed)
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: configuration.isPressed)
     }
 }
 
 extension ButtonStyle where Self == GlassButtonStyle {
     static var glassy: GlassButtonStyle { GlassButtonStyle() }
     static func glassyProminent() -> GlassButtonStyle { GlassButtonStyle(prominent: true) }
+}
+
+// MARK: - Kaydırma-tabanlı yumuşak giriş (Apple "fine" his) + standart geçiş ayarı
+extension View {
+    /// Liste öğeleri kaydırırken akıcı belirsin/ölçeklensin (scroll-driven, çok ince).
+    func smoothAppear() -> some View {
+        self.scrollTransition(.interactive) { content, phase in
+            content
+                .opacity(phase.isIdentity ? 1 : 0)
+                .scaleEffect(phase.isIdentity ? 1 : 0.94, anchor: .center)
+                .blur(radius: phase.isIdentity ? 0 : 4)
+                .offset(y: phase.isIdentity ? 0 : 14)
+        }
+    }
+}
+
+// Uygulama genel animasyon eğrisi (en yumuşak)
+extension Animation {
+    static var moveLog: Animation { .smooth(duration: 0.42) }
 }
 
 // MARK: - Uygulama arka planı (aurora gradyan, açık/koyu uyumlu)

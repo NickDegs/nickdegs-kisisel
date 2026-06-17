@@ -34,7 +34,7 @@ struct RoutesView: View {
                                 Spacer()
                                 Button(L("İzle","Play")) { play(r) }.buttonStyle(.glassy).fixedSize()
                             }
-                            .padding(14).glassPanel(20)
+                            .padding(14).glassPanel(20).smoothAppear()
                         }
                     }.padding(16)
                 }

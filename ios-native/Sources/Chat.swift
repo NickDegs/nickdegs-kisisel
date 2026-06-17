@@ -12,7 +12,7 @@ struct ChatListView: View {
                         ForEach(convos) { c in
                             NavigationLink {
                                 ConversationView(peer: c.username, name: c.name ?? c.username, avatar: c.avatar)
-                            } label: { row(c) }.buttonStyle(.plain)
+                            } label: { row(c) }.buttonStyle(.plain).smoothAppear()
                         }
                         if convos.isEmpty {
                             Text(L("Henüz sohbet yok","No conversations yet"))
@@ -64,7 +64,7 @@ struct ConversationView: View {
                         }.padding(.horizontal, 14).padding(.vertical, 16)
                     }
                     .onChange(of: msgs.count) { _, _ in
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                        withAnimation(.smooth(duration: 0.42)) {
                             proxy.scrollTo(msgs.last?.mid, anchor: .bottom)
                         }
                     }
@@ -109,7 +109,7 @@ struct ConversationView: View {
         let t = draft.trimmingCharacters(in: .whitespaces); guard !t.isEmpty else { return }
         draft = ""
         let m = Message(id: UUID().uuidString, frm: store.me.isEmpty ? "me" : store.me, text: t, ts: Date().timeIntervalSince1970, type: "text", media: nil)
-        withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) { msgs.append(m) }
+        withAnimation(.snappy(duration: 0.34, extraBounce: 0.16)) { msgs.append(m) }
         Task { await store.send(peer, t) }
     }
 }

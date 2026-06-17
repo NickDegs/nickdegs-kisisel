@@ -59,7 +59,7 @@ struct ProfileView: View {
                                     Text("@\(f.username)").font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                            }.padding(12).glassPanel(18)
+                            }.padding(12).glassPanel(18).smoothAppear()
                         }
                         Button { showAddFriend = true } label: {
                             Label(L("Arkadaş ekle","Add friend"), systemImage: "person.badge.plus")
@@ -76,7 +76,8 @@ struct ProfileView: View {
                                     if fontId == f.id { Image(systemName: "checkmark").foregroundStyle(Brand.accent) }
                                     else if !f.free && !premium { Image(systemName: "lock.fill").foregroundStyle(.secondary) }
                                 }.padding(.horizontal, 16).padding(.vertical, 14)
-                            }.buttonStyle(.plain).glassPanel(16)
+                            }.buttonStyle(.plain).glassPanel(16).smoothAppear()
+                            .animation(.snappy(duration: 0.3), value: fontId)
                         }
 
                         section(L("Görünüm","Appearance"))
