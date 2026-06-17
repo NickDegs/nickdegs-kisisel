@@ -1,6 +1,11 @@
-name: iOS → TestFlight
+name: iOS Native → TestFlight
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'ios-native/**'
+      - '.github/workflows/ios-native.yml'
   workflow_dispatch:
 
 permissions:
@@ -10,35 +15,24 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  testflight:
-    name: Build & Upload to TestFlight
+  build:
+    name: Build SwiftUI & Upload
     runs-on: macos-15
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Select Xcode 26 (iOS 26 SDK)
+      - name: Select Xcode 26
         run: |
           sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null || \
-          sudo xcode-select -s /Applications/Xcode_16.3.app 2>/dev/null || true
+          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null || true
           xcodebuild -version
 
-      - name: Setup Node 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Install XcodeGen
+        run: brew install xcodegen
 
-      - name: Install JS deps
-        run: npm ci || npm install
-
-      - name: Capacitor sync iOS
-        run: npx cap sync ios
-
-      - name: CocoaPods install
-        run: |
-          cd ios/App
-          pod install --repo-update
+      - name: Generate Xcode project
+        working-directory: ios-native
+        run: xcodegen generate
 
       - name: Import Distribution Certificate
         env:
@@ -62,7 +56,6 @@ jobs:
         run: |
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/nickdegs.mobileprovision
-          /usr/libexec/PlistBuddy -c 'Print:UUID' /dev/stdin <<< "$(security cms -D -i ~/Library/MobileDevice/Provisioning\ Profiles/nickdegs.mobileprovision)" || true
 
       - name: Decode ASC API Key
         env:
@@ -72,21 +65,24 @@ jobs:
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_KEY_BASE64" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8
 
-      - name: Build Archive (manual signing — App hedefinde tanımlı)
+      - name: Archive
+        working-directory: ios-native
         run: |
           BUILD_NUMBER=$(date -u +%Y%m%d%H%M)
-          echo "Build number: $BUILD_NUMBER"
-          # İmza ayarları project.pbxproj'da sadece App hedefinde (Pod framework'leri hariç).
           xcodebuild archive \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
+            -project MoveLog.xcodeproj \
+            -scheme MoveLog \
             -configuration Release \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath $RUNNER_TEMP/MoveLog.xcarchive \
             -destination "generic/platform=iOS" \
             CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE_SPECIFIER="NickDegs Kisisel AppStore" \
+            DEVELOPMENT_TEAM=SZF4T3P583 \
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/build.keychain"
 
-      - name: Export & Upload to TestFlight
+      - name: Export & Upload
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
@@ -105,18 +101,15 @@ jobs:
             <key>uploadSymbols</key><true/>
             <key>manageAppVersionAndBuildNumber</key><false/>
             <key>provisioningProfiles</key>
-            <dict>
-              <key>com.nickdegs.kisisel</key>
-              <string>${PROFILE_NAME}</string>
-            </dict>
+            <dict><key>com.nickdegs.kisisel</key><string>${PROFILE_NAME}</string></dict>
           </dict>
           </plist>
           EOF
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath $RUNNER_TEMP/MoveLog.xcarchive \
             -exportPath $RUNNER_TEMP/export \
             -exportOptionsPlist $RUNNER_TEMP/ExportOptions.plist \
             -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8 \
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-          echo "✅ TestFlight'a yüklendi"
+          echo "✅ Native build TestFlight'a yüklendi"
