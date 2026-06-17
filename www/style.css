@@ -8,8 +8,8 @@
   --glass:rgba(22,27,38,.62); --glass2:rgba(30,36,50,.55);
   --brd:rgba(255,255,255,.10); --hi:rgba(255,255,255,.14);
   --field:rgba(255,255,255,.06);
-  --gbtn:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
-  --gbtn-brd:rgba(255,255,255,.42); --gbtn-fg:#fff;
+  --gbtn:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
+  --gbtn-brd:rgba(255,255,255,.45); --gbtn-fg:#fff;
   --bgrad1:rgba(94,92,230,.18); --bgrad2:rgba(10,132,255,.16);
 }
 [data-theme="light"]{
@@ -19,7 +19,7 @@
   --glass:rgba(255,255,255,.58); --glass2:rgba(255,255,255,.64);
   --brd:rgba(0,0,0,.08); --hi:rgba(255,255,255,.85);
   --field:rgba(0,0,0,.04);
-  --gbtn:linear-gradient(180deg,rgba(255,255,255,.85),rgba(255,255,255,.45));
+  --gbtn:linear-gradient(180deg,rgba(255,255,255,.42),rgba(255,255,255,.12));
   --gbtn-brd:rgba(255,255,255,.9); --gbtn-fg:#0a3a86;
   --bgrad1:rgba(94,92,230,.16); --bgrad2:rgba(10,132,255,.14);
 }
@@ -62,8 +62,8 @@ html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
 .login-box button,.glass-btn,.iconbtn,.rowbtn{
   position:relative;overflow:hidden;border:1px solid var(--gbtn-brd);color:var(--gbtn-fg);font-weight:700;
   border-radius:16px;cursor:pointer;isolation:isolate;background:var(--gbtn);
-  backdrop-filter:saturate(170%) brightness(1.35) blur(7px);-webkit-backdrop-filter:saturate(170%) brightness(1.35) blur(7px);
-  box-shadow:0 6px 18px rgba(0,0,0,.30),inset 0 1.5px 0 var(--hi),inset 0 -5px 14px rgba(255,255,255,.10),inset 0 0 22px rgba(255,255,255,.08);
+  backdrop-filter:saturate(200%) brightness(1.55) blur(13px);-webkit-backdrop-filter:saturate(200%) brightness(1.55) blur(13px);
+  box-shadow:0 6px 20px rgba(0,0,0,.22),inset 0 1.5px 0 rgba(255,255,255,.85),inset 0 -6px 16px rgba(255,255,255,.06);
   transition:transform .28s var(--spring),box-shadow .3s var(--ease),filter .3s}
 .login-box button::before,.glass-btn::before,.iconbtn::before,.rowbtn::before{
   content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
