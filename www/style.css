@@ -8,8 +8,8 @@
   --glass:rgba(22,27,38,.62); --glass2:rgba(30,36,50,.55);
   --brd:rgba(255,255,255,.10); --hi:rgba(255,255,255,.14);
   --field:rgba(255,255,255,.06);
-  --gbtn:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,.02));
-  --gbtn-brd:rgba(255,255,255,.45); --gbtn-fg:#fff;
+  --gbtn:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.012));
+  --gbtn-brd:rgba(255,255,255,.48); --gbtn-fg:#fff;
   --bgrad1:rgba(94,92,230,.18); --bgrad2:rgba(10,132,255,.16);
 }
 [data-theme="light"]{
@@ -23,7 +23,7 @@
   --gbtn-brd:rgba(255,255,255,.9); --gbtn-fg:#0a3a86;
   --bgrad1:rgba(94,92,230,.16); --bgrad2:rgba(10,132,255,.14);
 }
-:root{--blur:saturate(180%) blur(28px);--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.32,.72,0,1)}
+:root{--blur:saturate(180%) blur(28px);--spring:cubic-bezier(.30,1.30,.45,1);--ease:cubic-bezier(.22,.61,.18,1);--glide:cubic-bezier(.16,1,.3,1)}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
   font-family:var(--appfont,-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif);
@@ -62,9 +62,10 @@ html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
 .login-box button,.glass-btn,.iconbtn,.rowbtn{
   position:relative;overflow:hidden;border:1px solid var(--gbtn-brd);color:var(--gbtn-fg);font-weight:700;
   border-radius:16px;cursor:pointer;isolation:isolate;background:var(--gbtn);
-  backdrop-filter:saturate(200%) brightness(1.55) blur(13px);-webkit-backdrop-filter:saturate(200%) brightness(1.55) blur(13px);
-  box-shadow:0 6px 20px rgba(0,0,0,.22),inset 0 1.5px 0 rgba(255,255,255,.85),inset 0 -6px 16px rgba(255,255,255,.06);
-  transition:transform .28s var(--spring),box-shadow .3s var(--ease),filter .3s}
+  backdrop-filter:saturate(205%) brightness(1.7) blur(18px);-webkit-backdrop-filter:saturate(205%) brightness(1.7) blur(18px);
+  box-shadow:0 8px 26px rgba(0,0,0,.20),0 0 0 .5px rgba(255,255,255,.18),
+    inset 0 1.6px 0 rgba(255,255,255,.95),inset 0 -8px 18px rgba(255,255,255,.05),inset 0 0 18px rgba(255,255,255,.05);
+  transition:transform .5s var(--spring),box-shadow .5s var(--glide),filter .4s var(--ease)}
 .login-box button::before,.glass-btn::before,.iconbtn::before,.rowbtn::before{
   content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
   background:radial-gradient(120% 90% at 50% -20%,rgba(255,255,255,.5),transparent 60%)}
@@ -72,7 +73,7 @@ html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
   content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;z-index:-1;transform:skewX(-22deg);
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.40),transparent);animation:sheen 4.5s ease-in-out infinite}
 @keyframes sheen{0%,12%{left:-70%}55%,100%{left:140%}}
-.login-box button:active,.glass-btn:active,.iconbtn:active,.rowbtn:active{transform:scale(.94);filter:brightness(1.25)}
+.login-box button:active,.glass-btn:active,.iconbtn:active,.rowbtn:active{transform:scale(.95);filter:brightness(1.35) saturate(1.15)}
 .ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:-1;
   background:radial-gradient(circle,rgba(255,255,255,.7),rgba(255,255,255,0) 70%);
   transform:translate(-50%,-50%) scale(0);animation:rip .6s var(--ease) forwards}
@@ -91,7 +92,7 @@ header #title{flex:1;min-width:0;transition:opacity .35s var(--ease)}
 
 /* ---------- TABS / KARTLAR ---------- */
 .tab{display:none;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
-.tab.active{display:block;animation:tabIn .45s var(--ease)}
+.tab.active{display:block;animation:tabIn .55s var(--glide)}
 @keyframes tabIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .list{max-width:600px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 80px) clamp(14px,4vw,20px) 130px}
 .gpsinfo{max-width:600px;margin:0 auto}
@@ -164,7 +165,7 @@ img.avatar{object-fit:cover}
   border:1px solid var(--gbtn-brd);background:var(--gbtn);
   backdrop-filter:saturate(170%) brightness(1.4) blur(6px);-webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(6px);
   box-shadow:0 5px 18px rgba(0,0,0,.35),inset 0 1.5px 0 var(--hi),inset 0 0 24px rgba(255,255,255,.10);
-  transition:transform .55s var(--spring),width .55s var(--spring)}
+  transition:transform .6s var(--glide),width .6s var(--glide)}
 .tab-ind::after{content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;transform:skewX(-22deg);
   background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);animation:sheen 4.5s ease-in-out infinite}
 .tabbar button{position:relative;z-index:1;background:none;border:0;color:var(--mut);padding:9px clamp(11px,3.8vw,16px);
