@@ -218,3 +218,44 @@ img.avatar{object-fit:cover}
 @media (max-width:380px) and (max-height:720px){header{font-size:25px}.brandmark{width:66px;height:66px}.logo{font-size:33px}#map{height:46vh}.tabbar{bottom:calc(env(safe-area-inset-bottom) + 9px)}}
 @media (min-width:436px){header{font-size:33px}.list,.gpsinfo{max-width:640px}#map{height:60vh}.brandmark{width:90px;height:90px}.logo{font-size:44px}.tabbar{max-width:452px}}
 @media (orientation:landscape) and (max-height:520px){#map{height:78vh}.list{padding-top:calc(env(safe-area-inset-top) + 58px)}}
+
+/* ===================== CHAT (full Liquid Glass) ===================== */
+.chatview{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;
+  background:radial-gradient(120% 80% at 80% -10%,var(--bgrad1),transparent 60%),
+    radial-gradient(120% 80% at 0% 110%,var(--bgrad2),transparent 55%),var(--bg);
+  transform:translateX(100%);opacity:0;pointer-events:none;
+  transition:transform .5s var(--spring),opacity .4s var(--ease)}
+.chatview.active{transform:none;opacity:1;pointer-events:auto}
+.chathead{display:flex;align-items:center;gap:12px;padding:max(14px,env(safe-area-inset-top)) 16px 12px;
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border-bottom:1px solid var(--brd);box-shadow:0 6px 20px rgba(0,0,0,.18)}
+.chathead .avatar{width:38px;height:38px;border-radius:50%}
+.chatpeer{flex:1;min-width:0;line-height:1.2}
+#chatName{font-weight:700;font-size:17px}
+#chatStatus{color:var(--mut);font-size:12.5px;margin-top:1px}
+.chatmsgs{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;
+  display:flex;flex-direction:column;gap:8px;padding:16px 14px 18px}
+.bub{max-width:78%;padding:11px 15px;font-size:15.5px;line-height:1.35;position:relative;
+  border:1px solid var(--brd);box-shadow:0 6px 16px rgba(0,0,0,.18),inset 0 1px 0 var(--hi);
+  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);word-wrap:break-word}
+.bub img{max-width:220px;border-radius:14px;display:block}
+.bub.them{align-self:flex-start;background:var(--glass2);border-bottom-left-radius:6px;border-top-left-radius:20px;border-top-right-radius:20px;border-bottom-right-radius:20px}
+.bub.me{align-self:flex-end;color:#fff;border-bottom-right-radius:6px;border-top-left-radius:20px;border-top-right-radius:20px;border-bottom-left-radius:20px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 60%,transparent),color-mix(in srgb,var(--acc2) 55%,transparent));
+  border-color:color-mix(in srgb,var(--acc) 50%,transparent)}
+.bub.appear{animation:bubIn .5s var(--spring)}
+@keyframes bubIn{from{opacity:0;transform:translateY(14px) scale(.9)}to{opacity:1;transform:none}}
+.chatbar{display:flex;align-items:center;gap:8px;padding:10px 12px max(12px,env(safe-area-inset-bottom));
+  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-top:1px solid var(--brd)}
+.chatbar input#chatInput{flex:1;padding:12px 16px;border:1px solid var(--brd);border-radius:22px;
+  background:var(--field);color:var(--fg);font-size:16px}
+.chatbar input#chatInput:focus{outline:0;border-color:var(--acc)}
+.iconbtn.send{background:var(--acc-grad);border-color:transparent}
+.iconbtn.send svg{stroke:#fff;fill:none}
+/* chat liste satırı */
+.avwrap2{position:relative;flex:0 0 auto;line-height:0}
+.avwrap2 .pres{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;
+  background:var(--green);border:2px solid var(--bg);box-shadow:0 0 8px var(--green)}
+.chatrow .badge{flex:0 0 auto;min-width:22px;height:22px;padding:0 7px;border-radius:11px;
+  background:var(--acc-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.chatrow .meta .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

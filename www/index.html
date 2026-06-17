@@ -37,6 +37,7 @@
   </header>
 
   <div id="tab-rides" class="tab active"><div id="rides" class="list"></div></div>
+  <div id="tab-chat" class="tab"><div id="chatList" class="list"></div></div>
   <div id="tab-gps" class="tab"><div id="map"></div><div id="gpsInfo" class="gpsinfo"></div></div>
   <div id="tab-stats" class="tab"><div id="stats" class="list"></div></div>
   <div id="tab-profile" class="tab"><div id="profile" class="list"></div></div>
@@ -46,6 +47,9 @@
     <button data-tab="rides" class="active" aria-label="Routes">
       <svg viewBox="0 0 24 24"><path d="M7 4.5h7a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h8"/><circle cx="5" cy="4.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/></svg>
       <span data-i18n="rides">Routes</span></button>
+    <button data-tab="chat" aria-label="Chat">
+      <svg viewBox="0 0 24 24"><path d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/></svg>
+      <span data-i18n="chat">Chat</span></button>
     <button data-tab="gps" aria-label="Map">
       <svg viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>
       <span data-i18n="gps">Map</span></button>
@@ -56,6 +60,22 @@
       <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
       <span data-i18n="profile">Profile</span></button>
   </nav>
+</section>
+
+<!-- CHAT KONUŞMA (tam ekran overlay) -->
+<section id="chatView" class="chatview">
+  <header class="chathead">
+    <button id="chatBack" class="iconbtn"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span id="chatAvatar"></span>
+    <div class="chatpeer"><div id="chatName"></div><div id="chatStatus"></div></div>
+  </header>
+  <div id="chatMsgs" class="chatmsgs"></div>
+  <div class="chatbar">
+    <button id="chatAttach" class="iconbtn"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <input id="chatInput" autocomplete="off">
+    <button id="chatSend" class="iconbtn send"><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7-7-1Z"/></svg></button>
+    <input type="file" id="chatPhoto" accept="image/*" hidden>
+  </div>
 </section>
 
 <!-- VIDEO MODAL -->

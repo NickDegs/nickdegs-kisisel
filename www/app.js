@@ -62,9 +62,32 @@ function demoData(path) {
   if (path.startsWith("/api/activities")) return { activities: [] };
   if (path === "/api/profile") return { name: demoUser(), avatar: { type: "initials" } };
   if (path === "/api/friends") return { friends: nm.slice(1, 4).map((d, i) => ({ username: d.toLowerCase().replace(/\s+/g, ""), name: d, avatar: { type: "initials" }, online: i === 1 })) };
+  if (path === "/api/chat/list") {
+    const ch = DEMO_CHAT[LANG] || DEMO_CHAT.en;
+    return { conversations: nm.slice(1, 4).map((d, i) => ({ username: d.toLowerCase().replace(/\s+/g, ""), name: d, avatar: { type: "initials" }, online: i === 1, unread: i === 0 ? 2 : 0, last: { frm: i % 2 ? "me" : "x", text: ch.snip[i], ts: today / 1000 - i * 900 } })) };
+  }
+  if (path.startsWith("/api/chat/with/")) {
+    const ch = DEMO_CHAT[LANG] || DEMO_CHAT.en, other = decodeURIComponent(path.split("/").pop());
+    const msgs = ch.thread.map((t, i) => ({ id: "m" + i, frm: i % 2 ? "me" : other, text: t, ts: today / 1000 - (ch.thread.length - i) * 240, type: "text" }));
+    return { messages: msgs, peer: { username: other, name: nm[1], avatar: { type: "initials" }, online: true } };
+  }
   return {};
 }
 const demoUser = () => (DEMO_NAMES[LANG] || DEMO_NAMES.en)[0];
+const DEMO_CHAT = {
+  en:{snip:["See you at the trail at 9 👍","Sent you the route","Great ride today!"],thread:["Morning! Ready for the ride?","Almost, leaving in 5","Perfect, I'll wait at the bridge","On my way","See you there!"]},
+  tr:{snip:["9'da patikada görüşürüz 👍","Rotayı yolladım","Bugün harika sürüştü!"],thread:["Günaydın! Sürüşe hazır mısın?","Az kaldı, 5 dakikaya çıkıyorum","Süper, köprüde beklerim","Yoldayım","Orada görüşürüz!"]},
+  de:{snip:["Sehen uns um 9 am Trail 👍","Route geschickt","Tolle Tour heute!"],thread:["Morgen! Bereit für die Tour?","Fast, fahre in 5 los","Super, warte an der Brücke","Bin unterwegs","Bis gleich!"]},
+  fr:{snip:["RDV au sentier à 9h 👍","Itinéraire envoyé","Super balade aujourd'hui !"],thread:["Salut ! Prêt pour la sortie ?","Presque, je pars dans 5 min","Parfait, j'attends au pont","En route","À tout de suite !"]},
+  es:{snip:["Nos vemos en la ruta a las 9 👍","Te envié la ruta","¡Gran paseo hoy!"],thread:["¡Buenos días! ¿Listo?","Casi, salgo en 5","Perfecto, te espero en el puente","En camino","¡Nos vemos!"]},
+  it:{snip:["Ci vediamo al sentiero alle 9 👍","Ti ho mandato il percorso","Bel giro oggi!"],thread:["Buongiorno! Pronto per il giro?","Quasi, parto tra 5","Perfetto, ti aspetto al ponte","Sto arrivando","Ci vediamo lì!"]},
+  pt:{snip:["Vejo você na trilha às 9 👍","Enviei a rota","Ótimo passeio hoje!"],thread:["Bom dia! Pronto pra pedalar?","Quase, saio em 5","Perfeito, espero na ponte","A caminho","Até já!"]},
+  ru:{snip:["Встретимся на тропе в 9 👍","Отправил маршрут","Отличная поездка!"],thread:["Доброе утро! Готов?","Почти, выезжаю через 5","Отлично, жду у моста","Уже еду","До встречи!"]},
+  ja:{snip:["9時にトレイルでね 👍","ルート送ったよ","今日は最高だった！"],thread:["おはよう！準備できた？","もうすぐ、5分で出る","了解、橋で待ってる","向かってるよ","じゃあそこで！"]},
+  zh:{snip:["9点小道见 👍","路线发给你了","今天骑得很爽！"],thread:["早上好！准备好了吗？","快了，5分钟后出发","好的，我在桥边等你","在路上了","到那儿见！"]},
+  ko:{snip:["9시에 트레일에서 봐 👍","경로 보냈어","오늘 라이딩 최고였어!"],thread:["좋은 아침! 준비됐어?","거의, 5분 뒤 출발","좋아, 다리에서 기다릴게","가는 중","거기서 봐!"]},
+  ar:{snip:["نراك في المسار الساعة 9 👍","أرسلت لك المسار","جولة رائعة اليوم!"],thread:["صباح الخير! جاهز للجولة؟","تقريبًا، سأخرج خلال 5","ممتاز، سأنتظرك عند الجسر","في الطريق","نراك هناك!"]},
+};
 
 /* ---------------- TİPOGRAFİ / FONT SEÇİCİ (Premium) ---------------- */
 const FONTS = [
@@ -131,6 +154,16 @@ const THEME_T = {
   ko:{appearance:"화면 모드",light:"라이트",dark:"다크"}, ar:{appearance:"المظهر",light:"فاتح",dark:"داكن"},
 };
 const TH = THEME_T[LANG] || THEME_T.en;
+const CHAT_L = {
+  en:{tab:"Chat",ph:"Message",noChats:"No conversations yet"}, tr:{tab:"Sohbet",ph:"Mesaj",noChats:"Henüz sohbet yok"},
+  de:{tab:"Chat",ph:"Nachricht",noChats:"Noch keine Chats"}, fr:{tab:"Discussion",ph:"Message",noChats:"Aucune conversation"},
+  es:{tab:"Chat",ph:"Mensaje",noChats:"Sin conversaciones"}, it:{tab:"Chat",ph:"Messaggio",noChats:"Nessuna chat"},
+  pt:{tab:"Conversa",ph:"Mensagem",noChats:"Sem conversas"}, ru:{tab:"Чат",ph:"Сообщение",noChats:"Нет чатов"},
+  ja:{tab:"チャット",ph:"メッセージ",noChats:"会話はまだありません"}, zh:{tab:"聊天",ph:"消息",noChats:"暂无会话"},
+  ko:{tab:"채팅",ph:"메시지",noChats:"대화 없음"}, ar:{tab:"الدردشة",ph:"رسالة",noChats:"لا محادثات بعد"},
+};
+const CL = CHAT_L[LANG] || CHAT_L.en;
+let ME = DEMO ? "me" : "";
 const MOON = '<path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.5 6.5 0 0 0 9.8 9.8Z"/>';
 const SUN = '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/>';
 function curTheme() { return document.documentElement.dataset.theme || "dark"; }
@@ -186,7 +219,8 @@ async function login() {
   } catch (e) { $("#loginErr").textContent = T.err; }
 }
 function logout() { TOKEN = ""; localStorage.removeItem("nd_token"); show("login"); }
-function enterApp() { show("app"); $("#title").textContent = T.rides; loadRides(); requestAnimationFrame(trackIndicator); }
+function enterApp() { show("app"); $("#title").textContent = T.rides; loadRides(); requestAnimationFrame(trackIndicator);
+  if (!DEMO) api("/api/profile").then(p => { ME = p.username || ME; }).catch(() => {}); }
 
 // ---- kayan Liquid Glass gösterge ----
 let indRAF;
@@ -361,14 +395,86 @@ async function loadGps() {
   } catch (e) { $("#gpsInfo").innerHTML = `<div class='empty'>${T.noLoc}</div>`; }
 }
 
+// ---- chat (Telegram-benzeri, full liquid glass + yumuşak animasyon) ----
+let curPeer = null, chatTimer = null;
+const escapeH = (s) => (s || "").replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+const isMine = (m) => m.frm === ME || m.frm === "me";
+function bubble(m, fresh) {
+  const body = (m.type === "photo" && m.media)
+    ? `<img src="${m.media.startsWith("http") || m.media.startsWith("data") ? m.media : API + m.media}">`
+    : escapeH(m.text);
+  return `<div class="bub ${isMine(m) ? "me" : "them"}${fresh ? " appear" : ""}">${body}</div>`;
+}
+async function loadChat() {
+  const el = $("#chatList"); el.innerHTML = `<div class='empty load'>${T.loading}</div>`;
+  try {
+    const { conversations } = await api("/api/chat/list");
+    if (!conversations.length) { el.innerHTML = `<div class='empty'>${CL.noChats}</div>`; return; }
+    el.innerHTML = conversations.map(c => `
+      <div class="card chatrow" data-u="${c.username}" data-n="${escapeH(c.name || c.username)}">
+        <div class="avwrap2">${renderAvatar(c.name || c.username, c.avatar, 50)}${c.online ? '<span class="pres"></span>' : ""}</div>
+        <div class="meta"><div class="t">${escapeH(c.name || c.username)}</div>
+          <div class="d">${c.last ? escapeH(c.last.text) : ""}</div></div>
+        ${c.unread ? `<span class="badge">${c.unread}</span>` : ""}
+      </div>`).join("");
+    el.querySelectorAll(".chatrow").forEach(b => b.onclick = () => openChat(b.dataset.u, b.dataset.n));
+  } catch (e) { el.innerHTML = `<div class='empty'>${T.failed}</div>`; }
+}
+async function openChat(u, name) {
+  curPeer = u;
+  $("#chatView").classList.add("active");
+  $("#chatName").textContent = name;
+  $("#chatStatus").textContent = "";
+  $("#chatAvatar").innerHTML = renderAvatar(name, { type: "initials" }, 38);
+  $("#chatMsgs").innerHTML = `<div class='empty load'>${T.loading}</div>`;
+  await refreshChat(true);
+  clearInterval(chatTimer);
+  if (!DEMO) chatTimer = setInterval(() => refreshChat(false), 3000);
+}
+async function refreshChat(scroll) {
+  if (!curPeer) return;
+  try {
+    const { messages, peer } = await api("/api/chat/with/" + encodeURIComponent(curPeer));
+    $("#chatStatus").textContent = (peer && peer.online) ? T.online : T.offline;
+    const m = $("#chatMsgs");
+    m.innerHTML = messages.length ? messages.map(x => bubble(x, false)).join("") : "";
+    if (scroll) requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+  } catch (e) {}
+}
+function closeChat() { clearInterval(chatTimer); chatTimer = null; curPeer = null; $("#chatView").classList.remove("active"); loadChat(); }
+async function sendMsg() {
+  const inp = $("#chatInput"), txt = inp.value.trim();
+  if (!txt || !curPeer) return;
+  inp.value = "";
+  const m = $("#chatMsgs"); const e = m.querySelector(".empty"); if (e) e.remove();
+  m.insertAdjacentHTML("beforeend", bubble({ frm: ME, text: txt, type: "text" }, true));
+  requestAnimationFrame(() => { m.scrollTop = m.scrollHeight; });
+  if (DEMO) return;
+  try { await api("/api/chat/send", { method: "POST", body: JSON.stringify({ to: curPeer, text: txt }) }); } catch (e2) {}
+}
+function chatAttach() { $("#chatPhoto").click(); }
+$("#chatPhoto") && ($("#chatPhoto").onchange = (ev) => {
+  const f = ev.target.files[0]; if (!f || !curPeer) return;
+  const rd = new FileReader(); rd.onload = () => {
+    const img = new Image(); img.onload = async () => {
+      const s = 720, c = document.createElement("canvas"); const r = Math.min(img.width, img.height);
+      c.width = c.height = s; c.getContext("2d").drawImage(img, (img.width - r) / 2, (img.height - r) / 2, r, r, 0, 0, s, s);
+      const data = c.toDataURL("image/jpeg", 0.82);
+      const m = $("#chatMsgs"); m.insertAdjacentHTML("beforeend", bubble({ frm: ME, type: "photo", media: data }, true));
+      m.scrollTop = m.scrollHeight;
+      if (!DEMO) { try { await api("/api/chat/send", { method: "POST", body: JSON.stringify({ to: curPeer, type: "photo", media: data }) }); } catch {} }
+    }; img.src = rd.result;
+  }; rd.readAsDataURL(f);
+});
+
 // ---- tabs ----
-const LOADERS = { rides: loadRides, gps: loadGps, stats: loadStats, profile: loadProfile };
+const LOADERS = { rides: loadRides, chat: loadChat, gps: loadGps, stats: loadStats, profile: loadProfile };
 function switchTab(name) {
   document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
   $("#tab-" + name).classList.add("active");
   document.querySelectorAll(".tabbar button").forEach(b => b.classList.toggle("active", b.dataset.tab === name));
   trackIndicator();
-  $("#title").textContent = T[name];
+  $("#title").textContent = (name === "chat" ? CL.tab : T[name]);
   (LOADERS[name] || (() => {}))();
 }
 
@@ -390,6 +496,13 @@ $("#loginBtn").onclick = login;
 $("#p").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
 $("#logout").onclick = logout;
 $("#themeBtn").onclick = toggleTheme;
+// chat
+$("#chatBack").onclick = closeChat;
+$("#chatSend").onclick = sendMsg;
+$("#chatAttach").onclick = chatAttach;
+$("#chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendMsg(); });
+$("#chatInput").placeholder = CL.ph;
+{ const cs = document.querySelector('.tabbar button[data-tab=chat] span'); if (cs) cs.textContent = CL.tab; }
 $("#closePlayer").onclick = () => { $("#vid").pause(); $("#vid").src = ""; $("#player").classList.remove("active"); };
 document.querySelectorAll(".tabbar button").forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 
