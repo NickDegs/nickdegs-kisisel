@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#0b0e14">
+<meta name="theme-color" content="#f4efe4">
 <title>Move Log</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="style.css">
@@ -16,45 +16,78 @@
       <svg viewBox="0 0 24 24"><path d="M7 4.5h7a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h8"/><circle cx="5" cy="4.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/></svg>
     </div>
     <div class="logo">Move Log</div>
-    <p class="sub">Rotalarım · Aktivite · Canlı Konum</p>
-    <input id="u" placeholder="Kullanıcı" autocapitalize="none" autocomplete="username">
-    <input id="p" type="password" placeholder="Parola" autocomplete="current-password">
-    <button id="loginBtn">Giriş</button>
+    <p class="sub" data-i18n="tagline">Routes · Activity · Live location</p>
+    <input id="u" autocapitalize="none" autocomplete="username" data-i18n-ph="user">
+    <input id="p" type="password" autocomplete="current-password" data-i18n-ph="password">
+    <button id="loginBtn" data-i18n="signin">Sign in</button>
     <div id="loginErr" class="err"></div>
   </div>
 </section>
 
 <!-- APP -->
 <section id="app" class="screen">
-  <header><span id="title">Rotalarım</span><button id="logout">çıkış</button></header>
+  <header>
+    <span id="title">Move Log</span>
+    <button id="logout" class="iconbtn" aria-label="Sign out">
+      <svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 8l-4 4 4 4M6 12h11"/></svg>
+    </button>
+  </header>
 
   <div id="tab-rides" class="tab active"><div id="rides" class="list"></div></div>
-  <div id="tab-acts" class="tab"><div id="acts" class="list"></div></div>
   <div id="tab-gps" class="tab"><div id="map"></div><div id="gpsInfo" class="gpsinfo"></div></div>
   <div id="tab-stats" class="tab"><div id="stats" class="list"></div></div>
+  <div id="tab-profile" class="tab"><div id="profile" class="list"></div></div>
 
   <nav class="tabbar">
     <span class="tab-ind"></span>
-    <button data-tab="rides" class="active" aria-label="Rotalar">
+    <button data-tab="rides" class="active" aria-label="Routes">
       <svg viewBox="0 0 24 24"><path d="M7 4.5h7a3.5 3.5 0 0 1 0 7H9a3.5 3.5 0 0 0 0 7h8"/><circle cx="5" cy="4.5" r="2.2"/><circle cx="19" cy="18.5" r="2.2"/></svg>
-      <span>Rotalar</span></button>
-    <button data-tab="acts" aria-label="Aktivite">
-      <svg viewBox="0 0 24 24"><path d="M3 12.5h4l2.2-6 3.4 12 2.6-9 1.6 3h4.2"/></svg>
-      <span>Aktivite</span></button>
-    <button data-tab="gps" aria-label="GPS">
+      <span data-i18n="rides">Routes</span></button>
+    <button data-tab="gps" aria-label="Map">
       <svg viewBox="0 0 24 24"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.6"/></svg>
-      <span>GPS</span></button>
-    <button data-tab="stats" aria-label="İstatistik">
+      <span data-i18n="gps">Map</span></button>
+    <button data-tab="stats" aria-label="Stats">
       <svg viewBox="0 0 24 24"><path d="M5 20V11M12 20V5M19 20v-6" stroke-linecap="round"/></svg>
-      <span>İstatistik</span></button>
+      <span data-i18n="stats">Stats</span></button>
+    <button data-tab="profile" aria-label="Profile">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>
+      <span data-i18n="profile">Profile</span></button>
   </nav>
 </section>
 
 <!-- VIDEO MODAL -->
 <div id="player" class="modal"><div class="modal-in">
-  <button id="closePlayer">✕</button>
+  <button id="closePlayer" class="iconbtn"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
   <video id="vid" controls playsinline></video>
   <div id="vidMeta"></div>
+</div></div>
+
+<!-- AVATAR EDITOR -->
+<div id="avEditor" class="modal sheet"><div class="sheet-in">
+  <div class="sheet-h"><span id="avTitle"></span><button class="iconbtn" id="avClose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div id="emojiGrid" class="emojigrid"></div>
+  <button class="glass-btn wide" id="uploadPhoto"></button>
+  <input type="file" id="photoInput" accept="image/*" hidden>
+</div></div>
+
+<!-- ADD FRIEND -->
+<div id="addFriendModal" class="modal sheet"><div class="sheet-in">
+  <div class="sheet-h"><span id="afTitle"></span><button class="iconbtn" id="afClose"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+  <div class="flabel" id="byUserL"></div>
+  <div class="frow"><input id="friendU" placeholder="@username" autocapitalize="none"><button class="glass-btn" id="friendAdd"></button></div>
+  <div id="friendErr" class="err"></div>
+  <div class="orline"></div>
+  <div class="flabel" id="inviteL"></div>
+  <div class="frow"><input id="inviteLink" readonly><button class="glass-btn" id="inviteCopy"></button></div>
+</div></div>
+
+<!-- PAYWALL -->
+<div id="paywall" class="modal sheet"><div class="sheet-in">
+  <div class="pwicon"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6L12 16.9 6.7 19.5l1.1-6L3.4 9.3l6-.8L12 3Z"/></svg></div>
+  <div class="pwtitle">Move Log <span id="pwPremium"></span></div>
+  <div id="pwDesc" class="pwdesc"></div>
+  <button class="glass-btn wide" id="pwBuy"></button>
+  <button class="textbtn" id="pwLater"></button>
 </div></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>

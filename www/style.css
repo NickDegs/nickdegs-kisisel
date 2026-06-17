@@ -1,250 +1,235 @@
-/* NickDegs — iOS 26 "Liquid Glass" tasarım dili
-   Buzlu cam materyaller · derinlik · yay (spring) animasyonları · yüzen pill tab bar */
+/* Move Log — EDITORIAL / SERIF tasarım dili (global)
+   Dergi estetiği: sıcak kâğıt zemin · serif tipografi · ince kurallar (hairline) ·
+   geniş boşluk · sakin, sofistike. Küçük etiketler için harf-aralıklı sans "kicker". */
 :root{
-  --bg:#05070c; --bg2:#0a0e17;
-  --fg:#f2f5fb; --mut:#9aa3b4;
-  --acc:#0a84ff;        /* iOS sistem mavisi */
-  --acc-grad:linear-gradient(135deg,#0a84ff,#5e5ce6);
-  --red:#ff453a; --green:#30d158;
-  /* cam materyaller */
-  --glass:rgba(22,27,38,.62);
-  --glass-2:rgba(30,36,50,.55);
-  --glass-brd:rgba(255,255,255,.10);
-  --glass-hi:rgba(255,255,255,.14);   /* specular highlight */
-  --blur:saturate(180%) blur(28px);
-  --spring:cubic-bezier(.34,1.56,.64,1);
+  --paper:#f4efe4;        /* sıcak fildişi kâğıt */
+  --paper2:#efe7d8;       /* kart kâğıdı */
+  --ink:#1b1713;          /* sıcak siyah mürekkep */
+  --ink2:#3c352c;
+  --mut:#857b6c;          /* susturulmuş */
+  --rule:#d8cdb8;         /* hairline çizgi */
+  --acc:#8c2f24;          /* oxblood — editöryel vurgu */
+  --acc2:#b6442f;
+  --green:#3f6f3a; --red:#9a3127;
+  --serif:ui-serif,"New York","Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,system-ui,sans-serif;
   --ease:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.34,1.3,.64,1);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
-html,body{margin:0;height:100%;color:var(--fg);overflow:hidden;
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
-  font-size:17px;letter-spacing:-.01em;
-  background:
-    radial-gradient(120% 80% at 80% -10%,rgba(94,92,230,.18),transparent 60%),
-    radial-gradient(120% 80% at 0% 110%,rgba(10,132,255,.16),transparent 55%),
-    var(--bg);
-}
+html,body{margin:0;height:100%;color:var(--ink);overflow:hidden;
+  font-family:var(--serif);font-size:18px;line-height:1.5;
+  background:var(--paper);
+  background-image:radial-gradient(120% 80% at 50% -10%,#fbf7ee,transparent 60%);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 .screen{display:none;height:100vh;height:100dvh;flex-direction:column}
-.screen.active{display:flex;animation:fadeIn .5s var(--ease)}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.screen.active{display:flex;animation:fade .5s var(--ease)}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+/* editöryel "kicker" — küçük, harf aralıklı, sans, büyük harf */
+.kicker{font-family:var(--sans);font-size:11px;font-weight:600;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--acc)}
 
-/* ---------- LOGIN ---------- */
-#login{align-items:center;justify-content:center;padding:24px}
-.login-box{width:100%;max-width:370px;text-align:center;padding:34px 26px;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-brd);border-radius:32px;
-  box-shadow:0 30px 80px rgba(0,0,0,.55),inset 0 1px 0 var(--glass-hi);
-  animation:rise .7s var(--spring)}
-@keyframes rise{from{opacity:0;transform:translateY(40px) scale(.94)}to{opacity:1;transform:none}}
-.brandmark{width:84px;height:84px;margin:0 auto 18px;border-radius:24px;display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.42);
-  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
-  backdrop-filter:saturate(170%) brightness(1.4) blur(7px);-webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(7px);
-  box-shadow:0 14px 34px rgba(10,132,255,.30),inset 0 1.5px 0 rgba(255,255,255,.9),inset 0 0 24px rgba(255,255,255,.12);
-  animation:floaty 5s ease-in-out infinite}
-.brandmark::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% -10%,rgba(255,255,255,.5),transparent 60%)}
-.brandmark svg{width:46px;height:46px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 2px 6px rgba(10,132,255,.6));position:relative}
-@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.logo{font-size:40px;font-weight:800;letter-spacing:-.03em;
-  background:linear-gradient(180deg,#fff,#aeb6c6);-webkit-background-clip:text;background-clip:text;color:transparent}
-.sub{color:var(--mut);margin:6px 0 26px;font-size:14.5px}
-.login-box input{width:100%;padding:16px 18px;margin:8px 0;border:1px solid var(--glass-brd);
-  border-radius:16px;background:rgba(255,255,255,.06);color:var(--fg);font-size:17px;
-  transition:border-color .3s,background .3s}
-.login-box input:focus{outline:0;border-color:var(--acc);background:rgba(10,132,255,.10)}
-.login-box button{margin-top:18px;font-size:17px;width:100%;padding:17px}
-.err{color:var(--red);margin-top:14px;font-size:14px;min-height:18px}
+/* ---------- LOGIN (editöryel kapak) ---------- */
+#login{align-items:center;justify-content:center;padding:30px}
+.login-box{width:100%;max-width:380px;text-align:center}
+.brandmark{width:74px;height:74px;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;
+  border:1.5px solid var(--ink);border-radius:50%}
+.brandmark svg{width:38px;height:38px;fill:none;stroke:var(--acc);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.logo{font-family:var(--serif);font-weight:600;font-size:52px;letter-spacing:-.02em;line-height:1}
+.sub{font-style:italic;color:var(--mut);margin:10px 0 30px;font-size:17px}
+.login-box input{width:100%;padding:13px 4px;margin:0;border:0;border-bottom:1px solid var(--rule);
+  background:transparent;color:var(--ink);font-family:var(--serif);font-size:18px;text-align:center;
+  transition:border-color .3s}
+.login-box input::placeholder{color:var(--mut)}
+.login-box input:focus{outline:0;border-bottom-color:var(--acc)}
+.login-box input+input{margin-top:10px}
+.login-box button{margin-top:28px;width:100%}
+.err{color:var(--red);margin-top:16px;font-size:14px;min-height:18px;font-style:italic}
 
-/* ---------- LIQUID GLASS BUTON (saydam cam + rim + sheen + sıvı dalga) ---------- */
-.login-box button,.card .play,.glass-btn,header button,#closePlayer{
-  position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.42);
-  color:#fff;font-weight:700;border-radius:16px;cursor:pointer;isolation:isolate;
-  text-shadow:0 1px 3px rgba(0,0,0,.45);
-  /* GERÇEK iOS 26 Liquid Glass: renksiz cam, arkasını parlatıp kırar */
-  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
-  backdrop-filter:saturate(170%) brightness(1.4) blur(7px);
-  -webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(7px);
-  box-shadow:
-    0 6px 18px rgba(0,0,0,.38),
-    inset 0 1.5px 0 rgba(255,255,255,.9),       /* üst kenar specular rim */
-    inset 0 -5px 14px rgba(255,255,255,.14),
-    inset 0 0 22px rgba(255,255,255,.12);
-  transition:transform .28s var(--spring),box-shadow .3s var(--ease),filter .3s}
-.card .play{border-radius:14px}
-/* cam refraksiyon: üstte parlak lens katmanı */
-.login-box button::before,.card .play::before,.glass-btn::before,header button::before,#closePlayer::before{
-  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
-  background:radial-gradient(120% 90% at 50% -20%,rgba(255,255,255,.5),transparent 60%)}
-/* sürekli yavaş ışık süzülmesi (sheen) — cam "canlı" hisset */
-.login-box button::after,.card .play::after,.glass-btn::after,header button::after,#closePlayer::after{
-  content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;z-index:-1;
-  transform:skewX(-22deg);
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
-  animation:sheen 4.5s ease-in-out infinite}
-@keyframes sheen{0%,12%{left:-70%}55%,100%{left:140%}}
-.login-box button:active,.card .play:active,.glass-btn:active,header button:active,#closePlayer:active{
-  transform:scale(.93);filter:brightness(1.3);
-  box-shadow:0 4px 12px rgba(0,0,0,.35),inset 0 1.5px 0 rgba(255,255,255,1),inset 0 0 30px rgba(255,255,255,.28)}
-/* basınca sıvı dalga (JS ile konumlanır) */
-.ripple{position:absolute;border-radius:50%;pointer-events:none;z-index:-1;
-  background:radial-gradient(circle,rgba(255,255,255,.7),rgba(255,255,255,0) 70%);
-  transform:translate(-50%,-50%) scale(0);animation:ripple .6s var(--ease) forwards}
-@keyframes ripple{to{transform:translate(-50%,-50%) scale(3.2);opacity:0}}
+/* ---------- BUTONLAR (editöryel: mürekkep dolu + serif) ---------- */
+.login-box button,.glass-btn{
+  font-family:var(--serif);font-size:17px;font-weight:600;cursor:pointer;
+  color:var(--paper);background:var(--ink);border:1px solid var(--ink);
+  padding:14px 22px;border-radius:2px;letter-spacing:.01em;
+  transition:background .25s var(--ease),color .25s,transform .2s var(--spring)}
+.login-box button:active,.glass-btn:active{transform:scale(.97);background:var(--acc);border-color:var(--acc)}
+.card .play.glass-btn{padding:9px 18px;font-size:15px;background:transparent;color:var(--ink);border:1px solid var(--ink)}
+.card .play.glass-btn:active{background:var(--ink);color:var(--paper)}
+.iconbtn{width:40px;height:40px;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  flex:0 0 auto;background:transparent;border:1px solid var(--rule);color:var(--ink2);cursor:pointer;
+  transition:background .2s,color .2s}
+.iconbtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn:active{background:var(--ink);color:var(--paper)}
 
-/* ---------- HEADER (glass, içerik altından kayar) ---------- */
+/* ---------- HEADER (editöryel başlık + hairline) ---------- */
 header{position:absolute;top:0;left:0;right:0;z-index:20;
   display:flex;align-items:flex-end;justify-content:space-between;
-  padding:max(16px,env(safe-area-inset-top)) 20px 12px;
-  font-size:30px;font-weight:800;letter-spacing:-.02em;
-  background:linear-gradient(180deg,rgba(5,7,12,.86),rgba(5,7,12,.30) 70%,transparent);
-  backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px);
-  -webkit-mask:linear-gradient(180deg,#000 60%,transparent)}
-header #title{transition:opacity .35s var(--ease)}
-header button{font-size:13px;font-weight:600;padding:8px 15px;border-radius:20px}
+  padding:max(20px,env(safe-area-inset-top)) 22px 14px;
+  background:linear-gradient(180deg,var(--paper) 62%,transparent);
+  border-bottom:1px solid var(--rule)}
+header #title{font-family:var(--serif);font-weight:600;font-size:32px;letter-spacing:-.02em;line-height:1.05;
+  transition:opacity .35s var(--ease)}
 
 /* ---------- TABS / SCROLL ---------- */
 .tab{display:none;flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .tab.active{display:block;animation:tabIn .45s var(--ease)}
-@keyframes tabIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.list{padding:calc(env(safe-area-inset-top) + 78px) 16px 130px}
+@keyframes tabIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.list{max-width:620px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 84px) 22px 120px}
+.gpsinfo{max-width:620px;margin:0 auto}
 
-/* ---------- KARTLAR (cam + staggered giriş) ---------- */
-.card,.summary,.kv{
-  background:var(--glass-2);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-brd);box-shadow:0 12px 34px rgba(0,0,0,.40),inset 0 1px 0 var(--glass-hi);
-  animation:cardIn .55s var(--spring) backwards}
-@keyframes cardIn{from{opacity:0;transform:translateY(26px) scale(.96)}to{opacity:1;transform:none}}
-.list>*:nth-child(1){animation-delay:.02s}.list>*:nth-child(2){animation-delay:.08s}
-.list>*:nth-child(3){animation-delay:.14s}.list>*:nth-child(4){animation-delay:.20s}
-.list>*:nth-child(5){animation-delay:.26s}.list>*:nth-child(n+6){animation-delay:.32s}
-
-.card{border-radius:22px;padding:16px;margin-bottom:13px;display:flex;align-items:center;gap:15px;
-  transition:transform .3s var(--spring)}
-.card:active{transform:scale(.975)}
-.card .ic{font-size:32px;width:54px;height:54px;display:flex;align-items:center;justify-content:center;
-  background:rgba(255,255,255,.07);border-radius:16px;border:1px solid var(--glass-brd)}
+/* ---------- KARTLAR (kâğıt + hairline, dergi listesi) ---------- */
+.card{display:flex;align-items:center;gap:16px;padding:18px 2px;border-bottom:1px solid var(--rule);
+  animation:cardIn .5s var(--ease) backwards}
+@keyframes cardIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.list>*:nth-child(1){animation-delay:.03s}.list>*:nth-child(2){animation-delay:.09s}
+.list>*:nth-child(3){animation-delay:.15s}.list>*:nth-child(4){animation-delay:.21s}
+.list>*:nth-child(5){animation-delay:.27s}.list>*:nth-child(n+6){animation-delay:.33s}
+.card .ic{width:50px;height:50px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;
+  border:1px solid var(--rule);border-radius:50%}
+.card .ic svg{width:27px;height:27px;fill:none;stroke:var(--acc);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .card .meta{flex:1;min-width:0}
-.card .meta .t{font-weight:700;font-size:17px}
-.card .meta .d{color:var(--mut);font-size:13.5px;margin-top:3px}
-.card .play{font-size:15px;padding:11px 18px}
-.summary{border-radius:22px;padding:18px;margin-bottom:13px;line-height:1.55;font-size:15.5px;white-space:pre-wrap}
-.kv{border-radius:18px;padding:17px 20px;margin-bottom:11px;display:flex;justify-content:space-between;
-  align-items:center;font-size:16.5px}
-.kv b{font-size:20px;background:var(--acc-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card .meta .t{font-family:var(--serif);font-weight:600;font-size:20px;letter-spacing:-.01em}
+.card .meta .d{font-family:var(--sans);color:var(--mut);font-size:12.5px;margin-top:3px;
+  letter-spacing:.04em;text-transform:uppercase}
+.summary{padding:18px 0;border-bottom:1px solid var(--rule);line-height:1.6;font-size:17px;white-space:pre-wrap}
+
+/* istatistik — büyük serif rakamlar */
+.kv{display:flex;justify-content:space-between;align-items:center;padding:18px 2px;border-bottom:1px solid var(--rule)}
+.kv>span{font-family:var(--sans);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}
+.kv b{font-family:var(--serif);font-weight:600;font-size:30px;color:var(--ink);letter-spacing:-.01em}
+.kvic{display:flex;align-items:center;gap:12px}
+.kvic svg{width:22px;height:22px;fill:none;stroke:var(--acc);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+
+/* ---------- PROFİL (editöryel künye) ---------- */
+.profhead{display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 0 4px;
+  border-bottom:1px solid var(--rule);margin-bottom:6px;padding-bottom:22px}
+.profhead .avatar{width:96px;height:96px}
+.profname{font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:-.02em}
+.profsub{font-family:var(--sans);color:var(--mut);font-size:11px;letter-spacing:.16em;text-transform:uppercase}
+.profstats{display:flex;margin:18px 0 6px}
+.ps{flex:1;text-align:center;padding:6px}
+.ps+.ps{border-left:1px solid var(--rule)}
+.ps b{display:block;font-family:var(--serif);font-size:34px;font-weight:600;color:var(--ink)}
+.ps span{font-family:var(--sans);color:var(--mut);font-size:11px;margin-top:4px;display:block;letter-spacing:.08em;text-transform:uppercase}
+.sechead{font-family:var(--sans);font-weight:600;font-size:11px;color:var(--acc);margin:22px 2px 4px;
+  text-transform:uppercase;letter-spacing:.2em}
+.avatar{border-radius:50%;display:block;overflow:hidden}
+.card.person{gap:14px}.card.person .dot{width:9px;height:9px;flex:0 0 auto}
 
 /* ---------- GPS ---------- */
-#map{height:58vh;width:100%;filter:saturate(1.05)}
-.leaflet-container{background:var(--bg2)!important}
-.gpsinfo{padding:14px 16px 130px}
-.gpschip{display:inline-flex;align-items:center;gap:9px;background:var(--glass-2);
-  backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-brd);
-  border-radius:16px;padding:11px 16px;margin:7px 7px 0 0;font-size:14px;font-weight:600;
-  box-shadow:inset 0 1px 0 var(--glass-hi)}
-.dot{width:10px;height:10px;border-radius:50%;box-shadow:0 0 0 4px rgba(255,255,255,.04)}
-.on{background:var(--green);box-shadow:0 0 12px var(--green),0 0 0 4px rgba(48,209,88,.15);animation:pulse 2s infinite}
-.off{background:#555}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+#map{height:56vh;width:100%}
+.leaflet-container{background:#e9e2d2!important;font-family:var(--sans)!important}
+.gpsinfo{padding:16px 22px 120px}
+.gpschip{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--rule);
+  border-radius:2px;padding:9px 14px;margin:7px 7px 0 0;font-family:var(--sans);font-size:12.5px;
+  letter-spacing:.03em;background:var(--paper2)}
+.dot{width:9px;height:9px;border-radius:50%}
+.on{background:var(--green)}.off{background:#b3a892}
 
-/* ---------- YÜZEN PILL TAB BAR (Liquid Glass) ---------- */
-.tabbar{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 14px);
-  transform:translateX(-50%);display:flex;align-items:center;gap:2px;padding:7px;z-index:20;
-  background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-  border:1px solid var(--glass-brd);border-radius:30px;
-  box-shadow:0 18px 50px rgba(0,0,0,.6),inset 0 1px 0 var(--glass-hi)}
-/* kayan gösterge — GERÇEK iOS 26 Liquid Glass: renksiz/şeffaf cam mercek
-   arkasını kırar+büyütür (brightness/saturate), parlak kenar (rim) + üst specular */
-.tab-ind{position:absolute;top:7px;left:0;height:calc(100% - 14px);width:0;border-radius:22px;z-index:0;
-  overflow:hidden;border:1px solid rgba(255,255,255,.42);
-  background:linear-gradient(180deg,rgba(255,255,255,.20),rgba(255,255,255,.05));
-  backdrop-filter:saturate(170%) brightness(1.4) blur(6px);
-  -webkit-backdrop-filter:saturate(170%) brightness(1.4) blur(6px);
-  box-shadow:
-    0 5px 18px rgba(0,0,0,.42),
-    inset 0 1.5px 0 rgba(255,255,255,.9),        /* üst kenar specular */
-    inset 0 -5px 14px rgba(255,255,255,.14),
-    inset 0 0 24px rgba(255,255,255,.12);
-  transition:transform .55s var(--spring),width .55s var(--spring)}
-/* üst cam lens parlaması (refraksiyon highlight) */
-.tab-ind::before{content:"";position:absolute;left:9%;right:9%;top:2px;height:44%;border-radius:20px;
-  background:linear-gradient(180deg,rgba(255,255,255,.55),transparent);pointer-events:none}
-/* hareketli ışık süzülmesi */
-.tab-ind::after{content:"";position:absolute;top:-30%;left:-70%;width:55%;height:160%;
-  transform:skewX(-22deg);background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);
-  animation:sheen 4.5s ease-in-out infinite}
-/* yatay sekme: ikon + (aktifte) yanında açılan etiket */
-.tabbar button{position:relative;z-index:1;background:none;border:0;color:var(--mut);font-size:21px;
-  padding:9px 14px;border-radius:22px;display:flex;flex-direction:row;align-items:center;white-space:nowrap;
-  transition:color .4s var(--ease),transform .3s var(--spring)}
-.tabbar button span{max-width:0;opacity:0;overflow:hidden;font-size:13px;font-weight:600;letter-spacing:-.01em;
-  transition:max-width .55s var(--spring),opacity .35s var(--ease),margin-left .55s var(--spring)}
-.tabbar button.active{color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.45)}
-.tabbar button.active span{max-width:96px;opacity:1;margin-left:7px}
-.tabbar button.measure span{transition:none}
-.tabbar button:active{transform:scale(.9)}
-/* SVG ikon (SF-Symbols tarzı çizgi) — currentColor, aktifte yay büyüme */
-.tabbar button svg{width:clamp(22px,6vw,25px);height:clamp(22px,6vw,25px);display:block;
-  fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
-  filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));
-  transition:transform .45s var(--spring),stroke-width .4s var(--ease)}
-.tabbar button.active svg{transform:translateY(-1px) scale(1.08);stroke-width:2.3}
-.tabbar button:active svg{transform:scale(.84)}
+/* ---------- TAB BAR (editöryel: hairline üst + serif etiket + kayan alt çizgi) ---------- */
+.tabbar{position:absolute;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:stretch;
+  padding:8px 6px max(8px,env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,var(--paper) 70%,transparent);border-top:1px solid var(--rule)}
+.tab-ind{position:absolute;top:0;left:0;height:2px;width:0;background:var(--acc);z-index:1;
+  transition:transform .5s var(--spring),width .5s var(--spring)}
+.tabbar button{position:relative;flex:1;background:none;border:0;cursor:pointer;color:var(--mut);
+  display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;
+  transition:color .35s var(--ease)}
+.tabbar button svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.5;
+  stroke-linecap:round;stroke-linejoin:round;transition:stroke-width .3s,transform .3s var(--spring)}
+.tabbar button span{font-family:var(--sans);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase}
+.tabbar button.active{color:var(--ink)}
+.tabbar button.active svg{stroke:var(--acc);stroke-width:1.8}
 
-/* ---------- VIDEO MODAL (glass backdrop + spring) ---------- */
-.modal{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:18px;
-  background:rgba(0,0,0,.55);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
-.modal.active{display:flex;animation:fadeIn .35s var(--ease)}
-.modal-in{width:100%;max-width:540px;position:relative;animation:modalIn .55s var(--spring)}
-@keyframes modalIn{from{opacity:0;transform:translateY(40px) scale(.9)}to{opacity:1;transform:none}}
-.modal-in video{width:100%;border-radius:22px;background:#000;
-  box-shadow:0 30px 80px rgba(0,0,0,.7),0 0 0 1px var(--glass-brd)}
-#closePlayer{position:absolute;top:-46px;right:0;width:40px;height:40px;border-radius:50%;
-  color:#fff;font-size:18px}
-#vidMeta{color:var(--mut);text-align:center;margin-top:14px;font-size:14.5px;font-weight:600}
+/* ---------- VİDEO MODAL ---------- */
+.modal{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;padding:20px;
+  background:rgba(27,23,19,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.modal.active{display:flex;animation:fade .35s var(--ease)}
+.modal-in{width:100%;max-width:560px;position:relative}
+.modal-in video{width:100%;border-radius:2px;background:#000;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+#closePlayer{position:absolute;top:-50px;right:0;background:var(--paper);color:var(--ink)}
+#vidMeta{font-family:var(--sans);color:var(--paper);text-align:center;margin-top:14px;font-size:12px;
+  letter-spacing:.08em;text-transform:uppercase}
 
-.empty{color:var(--mut);text-align:center;padding:60px 20px;font-size:15px}
+.empty{color:var(--mut);text-align:center;padding:64px 20px;font-size:17px;font-style:italic}
+.empty.load::after{content:"";display:block;width:24px;height:24px;margin:16px auto 0;
+  border:2px solid var(--rule);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* tıklama dalgası (ince) */
+.ripple{position:absolute;border-radius:50%;pointer-events:none;background:rgba(255,255,255,.25);
+  transform:translate(-50%,-50%) scale(0);animation:rip .55s var(--ease) forwards}
+@keyframes rip{to{transform:translate(-50%,-50%) scale(2.6);opacity:0}}
+.login-box button,.glass-btn,.iconbtn{position:relative;overflow:hidden}
+
+/* ---------- PROFİL: düzenlenebilir avatar / arkadaş / font ---------- */
+.avwrap{position:relative;background:none;border:0;padding:0;cursor:pointer;line-height:0}
+.avatar.emoji{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;
+  background:var(--paper2);border:1px solid var(--rule)}
+img.avatar{object-fit:cover}
+.avedit{position:absolute;right:-2px;bottom:-2px;width:30px;height:30px;border-radius:50%;
+  background:var(--ink);display:flex;align-items:center;justify-content:center;border:2px solid var(--paper)}
+.avedit svg{width:15px;height:15px;fill:none;stroke:var(--paper);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.rowbtn{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:9px;
+  background:none;border:1px solid var(--ink);color:var(--ink);font-family:var(--serif);font-size:16px;
+  padding:13px;border-radius:2px;cursor:pointer}
+.rowbtn svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rowbtn:active{background:var(--ink);color:var(--paper)}
+.fontrow{width:100%;display:flex;align-items:center;justify-content:space-between;
+  background:none;border:0;border-bottom:1px solid var(--rule);color:var(--ink);
+  padding:16px 2px;font-size:21px;cursor:pointer}
+.fontrow.sel{color:var(--acc)}
+.fontrow .lock svg,.fontrow .chk svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.fontrow .lock{color:var(--mut)}.fontrow .chk{color:var(--acc)}
+
+/* ---------- SHEET MODAL (alttan) ---------- */
+.modal.sheet{align-items:flex-end}
+.modal.sheet .sheet-in{width:100%;max-width:560px;margin:0 auto;background:var(--paper);
+  border-top-left-radius:18px;border-top-right-radius:18px;border:1px solid var(--rule);
+  padding:18px 20px max(22px,env(safe-area-inset-bottom));animation:sheetUp .4s var(--ease)}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sheet-h span{font-family:var(--serif);font-size:22px;font-weight:600}
+.emojigrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:16px}
+.emojibtn{font-size:30px;background:var(--paper2);border:1px solid var(--rule);border-radius:10px;
+  padding:8px 0;cursor:pointer}
+.emojibtn:active{background:var(--rule)}
+.glass-btn.wide,.rowbtn.wide{width:100%}
+.frow{display:flex;gap:8px;margin-top:6px}
+.frow input{flex:1;padding:13px 14px;border:1px solid var(--rule);border-radius:2px;background:var(--paper2);
+  color:var(--ink);font-family:var(--serif);font-size:16px}
+.frow input:focus{outline:0;border-color:var(--acc)}
+.flabel{font-family:var(--sans);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-top:14px}
+.orline{height:1px;background:var(--rule);margin:20px 0 4px}
+.pwicon{width:64px;height:64px;margin:6px auto 12px;border:1.5px solid var(--acc);border-radius:50%;
+  display:flex;align-items:center;justify-content:center}
+.pwicon svg{width:34px;height:34px;fill:var(--acc);stroke:none}
+.pwtitle{text-align:center;font-family:var(--serif);font-size:26px;font-weight:600}
+.pwtitle span{color:var(--acc);font-family:var(--sans);font-size:13px;letter-spacing:.18em;vertical-align:middle}
+.pwdesc{text-align:center;color:var(--mut);font-style:italic;margin:8px 0 20px;font-size:16px}
+.textbtn{display:block;margin:12px auto 0;background:none;border:0;color:var(--mut);font-family:var(--sans);
+  font-size:14px;cursor:pointer}
 
 /* =====================================================================
-   RESPONSIVE — iOS 26 destekli TÜM iPhone'lar (araştırıldı 2026-06-16)
-   CSS viewport aralığı: 375pt (SE 2020/22, 12/13 mini, 11 Pro) →
-   440pt (16 Pro Max, 17 Pro Max). Arada: 390/393/402 (12–17, Air),
-   414 (11/XR), 428/430 (Plus & Pro Max). Yükseklik 667 (SE) → 956.
-   Güvenli alanlar: Dynamic Island / çentik / Touch ID home — env() ile.
+   CİHAZ SINIFI BAZLI AYRI AYAR — iOS 26 destekli HER iPhone ekranı
    ===================================================================== */
-/* Akışkan taban: metin/boşluk 375→440 arası ölçeklenir (clamp) */
-html,body{font-size:clamp(15.5px,4.15vw,18px)}
-.list{max-width:600px;margin:0 auto;
-  padding-left:clamp(12px,4vw,20px);padding-right:clamp(12px,4vw,20px)}
-.gpsinfo{max-width:600px;margin:0 auto}
-.card{padding:clamp(13px,3.6vw,18px);gap:clamp(11px,3vw,16px)}
-.card .ic{width:clamp(46px,13vw,58px);height:clamp(46px,13vw,58px);font-size:clamp(26px,7vw,33px)}
-.tabbar{max-width:min(440px,94vw)}
-.tabbar button{padding:9px clamp(11px,3.8vw,18px)}
-
-/* Çok küçük & KISA ekran (iPhone SE 375×667, mini) — dikey sıkışmayı aç */
-@media (max-height:680px){
-  header{font-size:25px;padding-top:max(10px,env(safe-area-inset-top))}
-  .list{padding-top:calc(env(safe-area-inset-top) + 64px);padding-bottom:108px}
-  .tabbar{bottom:calc(env(safe-area-inset-bottom) + 9px)}
-  .tabbar button{font-size:19px;padding:7px 13px}
-  .card{margin-bottom:10px}
-  #map{height:50vh}
+html,body{font-size:clamp(16px,4.3vw,19px)}
+/* 4.7″ 375×667 (SE 2/3) */
+@media (max-width:380px) and (max-height:720px){
+  header{padding-top:max(10px,env(safe-area-inset-top))}header #title{font-size:27px}
+  .brandmark{width:60px;height:60px}.logo{font-size:42px}
+  .list{padding-top:calc(env(safe-area-inset-top) + 70px);padding-bottom:104px}
+  .card{padding:14px 2px}.card .ic{width:44px;height:44px}#map{height:46vh}
+  .tabbar button svg{width:21px;height:21px}
 }
-/* Touch ID cihazlar (SE) alt güvenli alan vermez → min boşluk garanti */
-@supports not (padding:max(0px)){ .tabbar{bottom:14px} }
-
-/* Büyük Pro Max / Plus (428–440pt) — içerik çok yayılmasın, ferah dursun */
-@media (min-width:430px){
-  html,body{font-size:18px}
-  header{padding-left:24px;padding-right:24px}
-}
-/* Yatay yönelim — tab bar ve harita uyumu */
-@media (orientation:landscape) and (max-height:520px){
-  #map{height:78vh}
-  .list{padding-top:calc(env(safe-area-inset-top) + 58px)}
-}
-/* spinner */
-.empty.load::after{content:"";display:block;width:26px;height:26px;margin:16px auto 0;
-  border:2.5px solid rgba(255,255,255,.15);border-top-color:var(--acc);border-radius:50%;
-  animation:spin .8s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* 5.4″/5.8″ 375×812 (mini, 11 Pro) */
+@media (max-width:380px) and (min-height:760px){ header #title{font-size:29px}.logo{font-size:46px}#map{height:53vh} }
+/* 6.1″ 390–402 (12–17, Air) */
+@media (min-width:384px) and (max-width:410px){ header #title{font-size:31px}#map{height:56vh} }
+/* 6.5″/6.7″ 414–430 */
+@media (min-width:411px) and (max-width:435px){ header #title{font-size:33px}.list{max-width:580px}#map{height:58vh} }
+/* 6.9″ ≥436 (Pro Max) */
+@media (min-width:436px){ html,body{font-size:19px}header #title{font-size:35px}.logo{font-size:56px}
+  .list,.gpsinfo{max-width:640px}#map{height:60vh}.brandmark{width:82px;height:82px} }
+/* yatay */
+@media (orientation:landscape) and (max-height:520px){ #map{height:78vh}.list{padding-top:calc(env(safe-area-inset-top) + 64px)} }
