@@ -139,28 +139,46 @@ enum DemoData {
         }
     }
     static var stats: Stats { Stats(totalRides: 24, byType: ["moto":11,"bike":7,"run":4,"walk":2], latest: rides.first) }
+    static func uname(_ s: String) -> String { s.lowercased().replacingOccurrences(of: " ", with: "") }
     static var positions: [Position] {
-        let (la, lo) = Demo.city[currentLang()] ?? Demo.city["en"]!
+        let (la, lo): (Double, Double) = Demo.city[currentLang()] ?? Demo.city["en"]!
         let nm = Demo.nm; let sp: [Double] = [0, 32, 0]
-        return (1...3).map { i in Position(device: nm[i], lat: la + Double(i-2)*0.012, lon: lo + Double(i-2)*0.014, speedKmh: sp[i-1], online: i == 2) }
+        var out: [Position] = []
+        for i in 1...3 {
+            let lat: Double = la + Double(i - 2) * 0.012
+            let lon: Double = lo + Double(i - 2) * 0.014
+            out.append(Position(device: nm[i], lat: lat, lon: lon, speedKmh: sp[i - 1], online: i == 2))
+        }
+        return out
     }
     static var friends: [Friend] {
         let nm = Demo.nm
-        return (1...3).map { i in Friend(username: nm[i].lowercased().replacingOccurrences(of: " ", with: ""), name: nm[i], avatar: Avatar(), online: i == 2) }
+        var out: [Friend] = []
+        for i in 1...3 { out.append(Friend(username: uname(nm[i]), name: nm[i], avatar: Avatar(), online: i == 2)) }
+        return out
     }
     static var convos: [Convo] {
-        let nm = Demo.nm; let th = Demo.thread[currentLang()] ?? Demo.thread["en"]!
-        return (1...3).map { i in
-            Convo(username: nm[i].lowercased().replacingOccurrences(of: " ", with: ""), name: nm[i], avatar: Avatar(),
-                  online: i == 2, unread: i == 1 ? 2 : 0,
-                  last: Message(id: "l\(i)", frm: nm[i], text: th[min(i, th.count-1)], ts: Date().timeIntervalSince1970 - Double(i)*900, type: "text", media: nil))
+        let nm = Demo.nm
+        let th = Demo.thread[currentLang()] ?? Demo.thread["en"]!
+        let now: Double = Date().timeIntervalSince1970
+        var out: [Convo] = []
+        for i in 1...3 {
+            let txt: String = th[min(i, th.count - 1)]
+            let msg = Message(id: "l\(i)", frm: nm[i], text: txt, ts: now - Double(i) * 900, type: "text", media: nil)
+            out.append(Convo(username: uname(nm[i]), name: nm[i], avatar: Avatar(), online: i == 2, unread: i == 1 ? 2 : 0, last: msg))
         }
+        return out
     }
     static var thread: [Message] {
         let th = Demo.thread[currentLang()] ?? Demo.thread["en"]!
         let other = Demo.nm[1]
-        return th.enumerated().map { i, t in
-            Message(id: "m\(i)", frm: i % 2 == 1 ? "me" : other, text: t, ts: Date().timeIntervalSince1970 - Double(th.count - i)*240, type: "text", media: nil)
+        let now: Double = Date().timeIntervalSince1970
+        var out: [Message] = []
+        for (i, t) in th.enumerated() {
+            let frm: String = (i % 2 == 1) ? "me" : other
+            let ts: Double = now - Double(th.count - i) * 240
+            out.append(Message(id: "m\(i)", frm: frm, text: t, ts: ts, type: "text", media: nil))
         }
+        return out
     }
 }
