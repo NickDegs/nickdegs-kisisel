@@ -9,12 +9,6 @@ enum Brand {
     }
 }
 
-// MARK: - Basit yerelleştirme (cihaz diline göre TR/EN)
-func L(_ tr: String, _ en: String) -> String {
-    let code = Locale.current.language.languageCode?.identifier ?? "en"
-    return code == "tr" ? tr : en
-}
-
 // MARK: - GERÇEK iOS 26 Liquid Glass modifikatörleri
 // .glassEffect(.regular.interactive()) → gerçek kırılma/mercek kenarı (native materyal).
 // iOS 26 altı için .ultraThinMaterial fallback.

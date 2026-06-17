@@ -1,0 +1,75 @@
+name: Native Screenshots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
+          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null || true
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        working-directory: ios-native
+        run: xcodegen generate
+
+      - name: Build for Simulator
+        working-directory: ios-native
+        run: |
+          xcodebuild build \
+            -project MoveLog.xcodeproj -scheme MoveLog \
+            -sdk iphonesimulator -configuration Debug \
+            -derivedDataPath dd \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO | tail -5
+          echo "APP=$(pwd)/dd/Build/Products/Debug-iphonesimulator/MoveLog.app" >> $GITHUB_ENV
+
+      - name: Capture screenshots
+        working-directory: ios-native
+        run: |
+          set -e
+          BUNDLE=com.nickdegs.kisisel
+          OUT="$(pwd)/shots"; mkdir -p "$OUT"
+          LANGS="en tr de fr es it pt ru ja zh ko ar"
+          SCREENS="hero rides chat gps profile"
+          # device-type:bucket
+          DEVICES=("iPhone 16 Pro Max:67" "iPhone 16:61" "iPhone SE (3rd generation):47")
+          for entry in "${DEVICES[@]}"; do
+            DEV="${entry%%:*}"; BUCKET="${entry##*:}"
+            UDID=$(xcrun simctl create "shot-$BUCKET" "$DEV" 2>/dev/null || true)
+            if [ -z "$UDID" ]; then echo "‼️ $DEV oluşturulamadı, atlanıyor"; continue; fi
+            xcrun simctl boot "$UDID"
+            xcrun simctl bootstatus "$UDID" -b
+            xcrun simctl install "$UDID" "$APP"
+            for lang in $LANGS; do
+              for scr in $SCREENS; do
+                xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+                xcrun simctl launch "$UDID" "$BUNDLE" DEMO "LANG=$lang" "SCREEN=$scr" >/dev/null
+                sleep 4
+                xcrun simctl io "$UDID" screenshot "$OUT/${BUCKET}_${lang}_${scr}.png" >/dev/null 2>&1 || echo "ss fail $BUCKET $lang $scr"
+              done
+            done
+            xcrun simctl shutdown "$UDID" || true
+            xcrun simctl delete "$UDID" || true
+            echo "✓ $DEV ($BUCKET) bitti"
+          done
+          echo "toplam: $(ls "$OUT" | wc -l) görsel"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-shots
+          path: ios-native/shots/*.png
+          retention-days: 3

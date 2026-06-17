@@ -23,7 +23,10 @@ struct MoveLogApp: App {
 
 struct RootView: View {
     @EnvironmentObject var store: Store
-    @State private var sel = 0
+    @State private var sel = RootView.initialTab()
+    static func initialTab() -> Int {
+        switch AppEnv.screen { case "chat": return 1; case "gps","map": return 2; case "stats": return 3; case "profile": return 4; default: return 0 }
+    }
     var body: some View {
         TabView(selection: $sel) {
             RoutesView().tabItem { Label(L("Rotalar","Routes"), systemImage: "map") }.tag(0)

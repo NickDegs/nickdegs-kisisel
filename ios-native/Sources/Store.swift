@@ -32,7 +32,8 @@ struct Convo: Codable, Identifiable, Hashable {
     @Published var token: String = UserDefaults.standard.string(forKey: "nd_token") ?? ""
     @Published var me: String = ""
     @Published var loginError = false
-    var loggedIn: Bool { !token.isEmpty }
+    var loggedIn: Bool { !token.isEmpty || (AppEnv.demo && AppEnv.screen != "hero") }
+    init() { if AppEnv.demo && AppEnv.screen != "hero" { me = "me" } }
 
     private func dec() -> JSONDecoder { let d = JSONDecoder(); d.keyDecodingStrategy = .convertFromSnakeCase; return d }
 
@@ -63,15 +64,22 @@ struct Convo: Codable, Identifiable, Hashable {
     func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
 
     func rides() async -> [Ride] {
-        (try? dec().decode([String:[Ride]].self, from: await req("/api/rides"))["rides"]) ?? []
+        if AppEnv.demo { return DemoData.rides }
+        return (try? dec().decode([String:[Ride]].self, from: await req("/api/rides"))["rides"]) ?? []
     }
-    func stats() async -> Stats? { try? dec().decode(Stats.self, from: await req("/api/stats")) }
+    func stats() async -> Stats? {
+        if AppEnv.demo { return DemoData.stats }
+        return try? dec().decode(Stats.self, from: await req("/api/stats")) }
     func positions() async -> [Position] {
-        (try? dec().decode([String:[Position]].self, from: await req("/api/gps/live"))["positions"]) ?? []
+        if AppEnv.demo { return DemoData.positions }
+        return (try? dec().decode([String:[Position]].self, from: await req("/api/gps/live"))["positions"]) ?? []
     }
-    func profile() async -> Profile? { try? dec().decode(Profile.self, from: await req("/api/profile")) }
+    func profile() async -> Profile? {
+        if AppEnv.demo { return Profile(username: "me", name: Demo.user, avatar: Avatar()) }
+        return try? dec().decode(Profile.self, from: await req("/api/profile")) }
     func friends() async -> [Friend] {
-        (try? dec().decode([String:[Friend]].self, from: await req("/api/friends"))["friends"]) ?? []
+        if AppEnv.demo { return DemoData.friends }
+        return (try? dec().decode([String:[Friend]].self, from: await req("/api/friends"))["friends"]) ?? []
     }
     func setAvatar(_ a: Avatar) async {
         let body: [String:Any] = ["avatar": ["type": a.type, "value": a.value ?? ""]]
@@ -87,9 +95,11 @@ struct Convo: Codable, Identifiable, Hashable {
         return (o["link"] as? String) ?? ""
     }
     func chatList() async -> [Convo] {
-        (try? dec().decode([String:[Convo]].self, from: await req("/api/chat/list"))["conversations"]) ?? []
+        if AppEnv.demo { return DemoData.convos }
+        return (try? dec().decode([String:[Convo]].self, from: await req("/api/chat/list"))["conversations"]) ?? []
     }
     func chatWith(_ other: String) async -> [Message] {
+        if AppEnv.demo { return DemoData.thread }
         struct R: Codable { var messages: [Message] }
         return (try? dec().decode(R.self, from: await req("/api/chat/with/" + other)).messages) ?? []
     }
@@ -116,4 +126,41 @@ func initials(_ name: String) -> String {
 func avatarColor(_ name: String) -> Color {
     var h = 0; for c in name.unicodeScalars { h = (h &* 31 &+ Int(c.value)) % 360 }
     return Color(hue: Double(h)/360.0, saturation: 0.5, brightness: 0.55)
+}
+
+// MARK: - Demo veri (native ekran görüntüleri)
+enum DemoData {
+    static var rides: [Ride] {
+        let types = ["moto","bike","run","walk","moto","bike"]
+        let df = DateFormatter(); df.dateFormat = "yyyy-MM-dd"
+        return types.enumerated().map { i, t in
+            let d = Calendar.current.date(byAdding: .day, value: -i*5, to: Date())!
+            return Ride(id: "d\(i)", date: df.string(from: d), type: t, mode: "flyover", size: (1.2 + Double(i)*0.9)*1048576)
+        }
+    }
+    static var stats: Stats { Stats(totalRides: 24, byType: ["moto":11,"bike":7,"run":4,"walk":2], latest: rides.first) }
+    static var positions: [Position] {
+        let (la, lo) = Demo.city[currentLang()] ?? Demo.city["en"]!
+        let nm = Demo.nm; let sp: [Double] = [0, 32, 0]
+        return (1...3).map { i in Position(device: nm[i], lat: la + Double(i-2)*0.012, lon: lo + Double(i-2)*0.014, speedKmh: sp[i-1], online: i == 2) }
+    }
+    static var friends: [Friend] {
+        let nm = Demo.nm
+        return (1...3).map { i in Friend(username: nm[i].lowercased().replacingOccurrences(of: " ", with: ""), name: nm[i], avatar: Avatar(), online: i == 2) }
+    }
+    static var convos: [Convo] {
+        let nm = Demo.nm; let th = Demo.thread[currentLang()] ?? Demo.thread["en"]!
+        return (1...3).map { i in
+            Convo(username: nm[i].lowercased().replacingOccurrences(of: " ", with: ""), name: nm[i], avatar: Avatar(),
+                  online: i == 2, unread: i == 1 ? 2 : 0,
+                  last: Message(id: "l\(i)", frm: nm[i], text: th[min(i, th.count-1)], ts: Date().timeIntervalSince1970 - Double(i)*900, type: "text", media: nil))
+        }
+    }
+    static var thread: [Message] {
+        let th = Demo.thread[currentLang()] ?? Demo.thread["en"]!
+        let other = Demo.nm[1]
+        return th.enumerated().map { i, t in
+            Message(id: "m\(i)", frm: i % 2 == 1 ? "me" : other, text: t, ts: Date().timeIntervalSince1970 - Double(th.count - i)*240, type: "text", media: nil)
+        }
+    }
 }

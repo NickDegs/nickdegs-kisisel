@@ -3,16 +3,15 @@ import SwiftUI
 struct ChatListView: View {
     @EnvironmentObject var store: Store
     @State private var convos: [Convo] = []
+    @State private var path: [Convo] = []
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ZStack {
                 AuroraBackground()
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(convos) { c in
-                            NavigationLink {
-                                ConversationView(peer: c.username, name: c.name ?? c.username, avatar: c.avatar)
-                            } label: { row(c) }.buttonStyle(.plain).smoothAppear()
+                            NavigationLink(value: c) { row(c) }.buttonStyle(.plain).smoothAppear()
                         }
                         if convos.isEmpty {
                             Text(L("Henüz sohbet yok","No conversations yet"))
@@ -22,8 +21,14 @@ struct ChatListView: View {
                 }
             }
             .navigationTitle(L("Sohbet","Chat"))
+            .navigationDestination(for: Convo.self) { c in
+                ConversationView(peer: c.username, name: c.name ?? c.username, avatar: c.avatar)
+            }
         }
-        .task { convos = await store.chatList() }
+        .task {
+            convos = await store.chatList()
+            if AppEnv.demo, AppEnv.screen == "chat", let first = convos.first { path = [first] }
+        }
     }
     func row(_ c: Convo) -> some View {
         HStack(spacing: 13) {
