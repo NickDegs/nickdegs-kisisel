@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 let EMOJIS = ["🙂","😎","🧑","👩","🧔","🦊","🦁","🐯","🦅","🏍️","🚲","🏃","🏔️","🌊","⚡️","🔥","⭐️","🎯"]
 
@@ -94,12 +95,7 @@ struct ProfileView: View {
             .navigationTitle(L("Profil","Profile"))
         }
         .task { prof = await store.profile(); friends = await store.friends(); stats = await store.stats() }
-        .confirmationDialog(L("Profil resmi","Profile picture"), isPresented: $showAvatar, titleVisibility: .visible) {
-            // emoji seçenekleri
-            ForEach(EMOJIS.prefix(8), id: \.self) { e in
-                Button(e) { Task { await store.setAvatar(Avatar(type: "emoji", value: e)); prof = await store.profile() } }
-            }
-        }
+        .sheet(isPresented: $showAvatar) { AvatarSheet(onDone: { Task { prof = await store.profile() } }) }
         .sheet(isPresented: $showAddFriend) { AddFriendSheet(onDone: { Task { friends = await store.friends() } }) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
     }
@@ -113,6 +109,62 @@ struct ProfileView: View {
     func section(_ t: String) -> some View {
         Text(t.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+    }
+}
+
+struct AvatarSheet: View {
+    @EnvironmentObject var store: Store
+    @Environment(\.dismiss) var dismiss
+    var onDone: () -> Void
+    @State private var photoItem: PhotosPickerItem?
+    @State private var uploading = false
+
+    var body: some View {
+        ZStack {
+            AuroraBackground()
+            ScrollView {
+                VStack(spacing: 18) {
+                    Text(L("Profil resmi","Profile picture")).font(.title2.bold())
+
+                    PhotosPicker(selection: $photoItem, matching: .images) {
+                        if uploading { ProgressView() }
+                        else { Label(L("Fotoğraf seç","Choose photo"), systemImage: "photo.on.rectangle") }
+                    }.buttonStyle(.glassyProminent()).disabled(uploading)
+
+                    Text(L("VEYA EMOJİ SEÇ","OR PICK AN EMOJI")).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
+                        ForEach(EMOJIS, id: \.self) { e in
+                            Button(e) {
+                                Task { await store.setAvatar(Avatar(type: "emoji", value: e)); onDone(); dismiss() }
+                            }.font(.system(size: 30)).frame(width: 46, height: 46).glassPanel(14)
+                        }
+                    }
+                }.padding(24)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .onChange(of: photoItem) { _, item in
+            guard let item else { return }
+            uploading = true
+            Task {
+                defer { uploading = false }
+                guard let data = try? await item.loadTransferable(type: Data.self),
+                      let img = UIImage(data: data),
+                      let jpeg = img.scaled(maxDim: 512).jpegData(compressionQuality: 0.8) else { return }
+                _ = await store.uploadPhoto(jpeg)
+                onDone(); dismiss()
+            }
+        }
+    }
+}
+
+extension UIImage {
+    // Yükleme öncesi küçült (backend 3MB sınırı + hız)
+    func scaled(maxDim: CGFloat) -> UIImage {
+        let f = min(maxDim / size.width, maxDim / size.height, 1)
+        if f >= 1 { return self }
+        let sz = CGSize(width: size.width * f, height: size.height * f)
+        return UIGraphicsImageRenderer(size: sz).image { _ in draw(in: CGRect(origin: .zero, size: sz)) }
     }
 }
 
