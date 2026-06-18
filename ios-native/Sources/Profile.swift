@@ -151,7 +151,9 @@ struct AddFriendSheet: View {
 
 struct PaywallSheet: View {
     @Binding var premium: Bool
+    @EnvironmentObject var iap: IAP
     @Environment(\.dismiss) var dismiss
+    @State private var failed = false
     var body: some View {
         ZStack {
             AuroraBackground()
@@ -161,10 +163,30 @@ struct PaywallSheet: View {
                 Text("Move Log PREMIUM").font(.title2.bold())
                 Text(L("Sevdiğin yazı tipini seç. Tek seferlik satın alma.","Choose the typeface you love. One-time purchase."))
                     .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                Button(L("Premium'u Aç","Unlock Premium")) { premium = true; dismiss() }
-                    .buttonStyle(.glassyProminent())
+
+                Button {
+                    Task {
+                        let ok = await iap.buy()
+                        premium = iap.purchased
+                        if ok { dismiss() } else { failed = true }
+                    }
+                } label: {
+                    if iap.working { ProgressView() }
+                    else { Text(iap.priceText.isEmpty ? L("Premium'u Aç","Unlock Premium")
+                                : L("Premium'u Aç","Unlock Premium") + " · " + iap.priceText) }
+                }
+                .buttonStyle(.glassyProminent()).disabled(iap.working || iap.product == nil)
+
+                Button(L("Satın alımları geri yükle","Restore purchases")) {
+                    Task { await iap.restore(); premium = iap.purchased; if iap.purchased { dismiss() } }
+                }.font(.footnote).foregroundStyle(.secondary)
+
+                if failed { Text(L("Satın alma tamamlanmadı.","Purchase didn’t complete."))
+                    .font(.footnote).foregroundStyle(.red) }
                 Button(L("Belki sonra","Maybe later")) { dismiss() }.foregroundStyle(.secondary)
             }.padding(28)
-        }.presentationDetents([.medium])
+        }
+        .presentationDetents([.medium])
+        .onAppear { if iap.product == nil { Task { await iap.load() } } }
     }
 }

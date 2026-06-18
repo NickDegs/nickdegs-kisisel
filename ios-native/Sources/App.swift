@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct MoveLogApp: App {
     @StateObject private var store = Store()
+    @StateObject private var iap = IAP()
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     var design: Font.Design {
@@ -14,6 +15,7 @@ struct MoveLogApp: App {
                 if store.loggedIn { RootView() } else { LoginView() }
             }
             .environmentObject(store)
+            .environmentObject(iap)
             .tint(Brand.accent)
             .fontDesign(design)
             .preferredColorScheme(scheme == "light" ? .light : .dark)
