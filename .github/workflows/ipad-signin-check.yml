@@ -43,10 +43,14 @@ jobs:
           set -e
           BUNDLE=com.nickdegs.kisisel
           OUT="$(pwd)/ipad"; mkdir -p "$OUT"
-          # mevcut en büyük iPad'i seç (reviewer'lar büyük iPad kullanır)
-          DEV=$(xcrun simctl list devicetypes | grep -iE "iPad Pro" | tail -1 | sed -E 's/ \(com\..*//')
-          echo "iPad: $DEV"
-          UDID=$(xcrun simctl create "ipad-check" "$DEV")
+          # iOS 18+ destekleyen MODERN iPad seç (eski iPad'ler deployment target 18.0'ı çalıştıramaz)
+          RUNTIME=$(xcrun simctl list runtimes iOS | grep -oE "com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]+" | tail -1)
+          echo "runtime: $RUNTIME"
+          UDID=""
+          for DEV in "iPad Pro 13-inch (M4)" "iPad Pro 11-inch (M4)" "iPad Air 13-inch (M2)" "iPad Air 11-inch (M2)" "iPad (A16)" "iPad (10th generation)" "iPad mini (A17 Pro)"; do
+            UDID=$(xcrun simctl create "ipad-check" "$DEV" "$RUNTIME" 2>/dev/null) && { echo "iPad: $DEV"; break; } || UDID=""
+          done
+          [ -z "$UDID" ] && { echo "❌ uygun iPad oluşturulamadı"; exit 1; }
           xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
           # 1) düz açılış = giriş ekranı (iPad'de render + alanlar)
