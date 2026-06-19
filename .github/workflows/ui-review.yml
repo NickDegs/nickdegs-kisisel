@@ -1,0 +1,56 @@
+name: UI Review Shots
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shots:
+    runs-on: macos-15
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.3.app 2>/dev/null || \
+          sudo xcode-select -s /Applications/Xcode_26.app 2>/dev/null || true
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: ios-native
+        run: xcodegen generate
+      - name: Build for Simulator
+        working-directory: ios-native
+        run: |
+          xcodebuild build \
+            -project MoveLog.xcodeproj -scheme MoveLog \
+            -sdk iphonesimulator -configuration Debug -derivedDataPath dd \
+            -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO | tail -4
+          echo "APP=$(pwd)/dd/Build/Products/Debug-iphonesimulator/MoveLog.app" >> $GITHUB_ENV
+      - name: Capture review screens
+        working-directory: ios-native
+        run: |
+          set -e
+          BUNDLE=com.nickdegs.kisisel
+          OUT="$(pwd)/review"; mkdir -p "$OUT"
+          UDID=$(xcrun simctl create "ui-review" "iPhone 16 Pro Max")
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          for lang in tr en; do
+            for scr in hero rides chat gps stats profile paywall avatar; do
+              xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+              xcrun simctl launch "$UDID" "$BUNDLE" DEMO "LANG=$lang" "SCREEN=$scr" >/dev/null
+              sleep 5
+              xcrun simctl io "$UDID" screenshot "$OUT/${lang}_${scr}.png" >/dev/null 2>&1 || echo "ss fail $lang $scr"
+            done
+          done
+          # açık tema profil de (koyu/açık kontrol)
+          echo "toplam: $(ls "$OUT" | wc -l)"
+          xcrun simctl shutdown "$UDID" || true; xcrun simctl delete "$UDID" || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-review
+          path: ios-native/review/*.png
+          retention-days: 5

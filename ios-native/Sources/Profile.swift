@@ -94,7 +94,14 @@ struct ProfileView: View {
             }
             .navigationTitle(L("Profil","Profile"))
         }
-        .task { prof = await store.profile(); friends = await store.friends(); stats = await store.stats() }
+        .task {
+            prof = await store.profile(); friends = await store.friends(); stats = await store.stats()
+            if AppEnv.demo {
+                try? await Task.sleep(for: .milliseconds(450))
+                if AppEnv.screen == "paywall" { showPaywall = true }
+                if AppEnv.screen == "avatar" { showAvatar = true }
+            }
+        }
         .sheet(isPresented: $showAvatar) { AvatarSheet(onDone: { Task { prof = await store.profile() } }) }
         .sheet(isPresented: $showAddFriend) { AddFriendSheet(onDone: { Task { friends = await store.friends() } }) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
