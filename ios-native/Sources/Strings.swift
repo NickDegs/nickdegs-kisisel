@@ -6,6 +6,13 @@ enum AppEnv {
     static var demo: Bool { args.contains("DEMO") }
     static var screen: String? { args.first(where: { $0.hasPrefix("SCREEN=") })?.replacingOccurrences(of: "SCREEN=", with: "") }
     static var langOverride: String? { args.first(where: { $0.hasPrefix("LANG=") })?.replacingOccurrences(of: "LANG=", with: "") }
+    // Yalnızca otomasyon/CI doğrulaması için (App Store kullanıcıları launch-arg geçmez): AUTOLOGIN=kullanıcı:parola
+    static var autoLogin: (user: String, pass: String)? {
+        guard let raw = args.first(where: { $0.hasPrefix("AUTOLOGIN=") })?.replacingOccurrences(of: "AUTOLOGIN=", with: ""),
+              raw.contains(":") else { return nil }
+        let p = raw.split(separator: ":", maxSplits: 1).map(String.init)
+        return (p[0], p.count > 1 ? p[1] : "")
+    }
 }
 
 let SUPPORTED = ["en","tr","de","fr","es","it","pt","ru","ja","zh","ko","ar"]

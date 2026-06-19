@@ -49,5 +49,9 @@ struct LoginView: View {
             float = true
             withAnimation(.smooth(duration: 0.6)) { shown = true }
         }
+        .task {
+            // CI/iPad doğrulaması: launch-arg ile gerçek giriş (kullanıcı bu yolu tetikleyemez)
+            if let c = AppEnv.autoLogin, store.token.isEmpty { await store.login(c.user, c.pass) }
+        }
     }
 }
