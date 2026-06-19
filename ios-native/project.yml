@@ -21,6 +21,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nickdegs.kisisel
+        CODE_SIGN_ENTITLEMENTS: MoveLog.entitlements
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_CFBundleDisplayName: "Move Log"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES

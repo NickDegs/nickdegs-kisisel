@@ -1,7 +1,9 @@
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject var store: Store
+    @AppStorage("nd_scheme") var scheme = "dark"
     @State private var user = ""; @State private var pass = ""
     @State private var float = false
     @State private var shown = false
@@ -39,6 +41,26 @@ struct LoginView: View {
                     Task { await store.login(user.trimmingCharacters(in: .whitespaces), pass) }
                 }
                 .buttonStyle(.glassyProminent()).padding(.top, 22)
+
+                // Ayraç
+                HStack { Rectangle().fill(.white.opacity(0.15)).frame(height: 1)
+                    Text(L("veya","or")).font(.caption).foregroundStyle(.secondary)
+                    Rectangle().fill(.white.opacity(0.15)).frame(height: 1) }
+                    .padding(.vertical, 16)
+
+                // Apple ile Giriş
+                SignInWithAppleButton(.signIn) { request in
+                    request.requestedScopes = [.fullName, .email]
+                } onCompletion: { result in
+                    guard case .success(let auth) = result,
+                          let cred = auth.credential as? ASAuthorizationAppleIDCredential,
+                          let tokenData = cred.identityToken,
+                          let idToken = String(data: tokenData, encoding: .utf8) else { store.loginError = true; return }
+                    let name = [cred.fullName?.givenName, cred.fullName?.familyName].compactMap { $0 }.joined(separator: " ")
+                    Task { await store.loginWithApple(idToken, name: name) }
+                }
+                .signInWithAppleButtonStyle(scheme == "light" ? .black : .white)
+                .frame(height: 50).clipShape(Capsule())
             }
             .padding(28).frame(maxWidth: 400)
             .scaleEffect(shown ? 1 : 0.96)

@@ -61,6 +61,19 @@ struct Convo: Codable, Identifiable, Hashable {
             } else { loginError = true }
         } catch { loginError = true }
     }
+    func loginWithApple(_ identityToken: String, name: String) async {
+        loginError = false
+        do {
+            var r = URLRequest(url: URL(string: API + "/auth/apple")!)
+            r.httpMethod = "POST"; r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            r.httpBody = try JSONSerialization.data(withJSONObject: ["identity_token": identityToken, "name": name])
+            let (data, _) = try await URLSession.shared.data(for: r)
+            if let o = try JSONSerialization.jsonObject(with: data) as? [String:Any], let t = o["token"] as? String {
+                token = t; me = (o["user"] as? String) ?? ""
+                UserDefaults.standard.set(t, forKey: "nd_token")
+            } else { loginError = true }
+        } catch { loginError = true }
+    }
     func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
 
     func rides() async -> [Ride] {
