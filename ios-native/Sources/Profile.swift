@@ -213,39 +213,71 @@ struct PaywallSheet: View {
     @EnvironmentObject var iap: IAP
     @Environment(\.dismiss) var dismiss
     @State private var failed = false
+
     var body: some View {
         ZStack {
             AuroraBackground()
-            VStack(spacing: 16) {
-                Image(systemName: "star.fill").font(.system(size: 34)).foregroundStyle(Brand.gradient)
-                    .frame(width: 64, height: 64).glassPanel(32)
-                Text("Move Log PREMIUM").font(.title2.bold())
-                Text(L("Sevdiğin yazı tipini seç. Tek seferlik satın alma.","Choose the typeface you love. One-time purchase."))
-                    .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            ScrollView {
+                VStack(spacing: 14) {
+                    Image(systemName: "star.fill").font(.system(size: 32)).foregroundStyle(Brand.gradient)
+                        .frame(width: 62, height: 62).glassPanel(31)
+                    Text("Move Log PREMIUM").font(.title2.bold())
+                    Text(L("Tüm premium yazı tiplerini aç.","Unlock all premium fonts."))
+                        .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
 
-                Button {
-                    Task {
-                        let ok = await iap.buy()
-                        premium = iap.purchased
-                        if ok { dismiss() } else { failed = true }
+                    // Yıllık — öne çıkan (en avantajlı)
+                    if let y = iap.yearly {
+                        planButton(y, period: L("yıl","yr"), badge: L("EN AVANTAJLI","BEST VALUE"))
                     }
-                } label: {
-                    if iap.working { ProgressView() }
-                    else { Text(iap.priceText.isEmpty ? L("Premium'u Aç","Unlock Premium")
-                                : L("Premium'u Aç","Unlock Premium") + " · " + iap.priceText) }
-                }
-                .buttonStyle(.glassyProminent()).disabled(iap.working || iap.product == nil)
+                    // Aylık
+                    if let m = iap.monthly {
+                        planButton(m, period: L("ay","mo"), badge: nil)
+                    }
+                    if iap.monthly == nil && iap.yearly == nil {
+                        ProgressView().padding(.vertical, 8)
+                    }
 
-                Button(L("Satın alımları geri yükle","Restore purchases")) {
-                    Task { await iap.restore(); premium = iap.purchased; if iap.purchased { dismiss() } }
-                }.font(.footnote).foregroundStyle(.secondary)
+                    Button(L("Satın alımları geri yükle","Restore purchases")) {
+                        Task { await iap.restore(); premium = iap.purchased; if iap.purchased { dismiss() } }
+                    }.font(.footnote).foregroundStyle(.secondary).padding(.top, 2)
 
-                if failed { Text(L("Satın alma tamamlanmadı.","Purchase didn’t complete."))
-                    .font(.footnote).foregroundStyle(.red) }
-                Button(L("Belki sonra","Maybe later")) { dismiss() }.foregroundStyle(.secondary)
-            }.padding(28)
+                    if failed { Text(L("Satın alma tamamlanmadı.","Purchase didn’t complete."))
+                        .font(.footnote).foregroundStyle(.red) }
+
+                    // App Store kuralı: oto-yenileme açıklaması + Şartlar/Gizlilik linkleri
+                    Text(L("Abonelik otomatik yenilenir; dönem sonundan en az 24 saat önce iptal etmezsen ücretlendirilirsin. Ayarlar’dan istediğin zaman iptal edebilirsin.",
+                           "Subscription auto-renews unless canceled at least 24h before the period ends. Manage or cancel anytime in Settings."))
+                        .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 6)
+                    HStack(spacing: 18) {
+                        Link(L("Kullanım Şartları","Terms of Use"), destination: URL(string: "https://app.nickdegs.com/terms.html")!)
+                        Link(L("Gizlilik","Privacy"), destination: URL(string: "https://app.nickdegs.com/privacy.html")!)
+                    }.font(.caption2).tint(Brand.accent)
+
+                    Button(L("Belki sonra","Maybe later")) { dismiss() }.foregroundStyle(.secondary).padding(.top, 2)
+                }.padding(26)
+            }
         }
-        .presentationDetents([.medium])
-        .onAppear { if iap.product == nil { Task { await iap.load() } } }
+        .presentationDetents([.large])
+        .onAppear { if iap.monthly == nil && iap.yearly == nil { Task { await iap.load() } } }
+    }
+
+    func planButton(_ p: Product, period: String, badge: String?) -> some View {
+        Button {
+            Task { let ok = await iap.buy(p); premium = iap.purchased; if ok { dismiss() } else { failed = true } }
+        } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(p.displayName).font(.system(size: 16, weight: .semibold))
+                    Text("\(p.displayPrice) / \(period)").font(.subheadline).foregroundStyle(.secondary)
+                }
+                Spacer()
+                if iap.working { ProgressView() }
+                else if let badge {
+                    Text(badge).font(.caption2.bold()).foregroundStyle(.white)
+                        .padding(.horizontal, 9).padding(.vertical, 5).background(Brand.gradient, in: Capsule())
+                }
+            }.frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain).padding(16).glassPanel(20).disabled(iap.working)
     }
 }

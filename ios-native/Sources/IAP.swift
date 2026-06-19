@@ -1,9 +1,13 @@
 import StoreKit
 
-// Gerçek StoreKit 2 — premium font kilidi (tek seferlik satın alma)
+// Gerçek StoreKit 2 — premium font kilidi (aylık / yıllık otomatik yenilenen abonelik)
 @MainActor final class IAP: ObservableObject {
-    static let productID = "com.nickdegs.kisisel.premiumfonts"
-    @Published var product: Product?
+    static let monthlyID = "com.nickdegs.kisisel.premium.monthly"
+    static let yearlyID = "com.nickdegs.kisisel.premium.yearly"
+    static var ids: [String] { [monthlyID, yearlyID] }
+
+    @Published var monthly: Product?
+    @Published var yearly: Product?
     @Published var purchased = UserDefaults.standard.bool(forKey: "nd_premium")
     @Published var working = false
     private var updates: Task<Void, Never>?
@@ -14,25 +18,24 @@ import StoreKit
     }
     deinit { updates?.cancel() }
 
-    var priceText: String { product?.displayPrice ?? "" }
-
     func load() async {
-        product = try? await Product.products(for: [Self.productID]).first
+        let prods = (try? await Product.products(for: Self.ids)) ?? []
+        monthly = prods.first { $0.id == Self.monthlyID }
+        yearly = prods.first { $0.id == Self.yearlyID }
     }
 
     func refresh() async {
         var owned = false
         for await result in Transaction.currentEntitlements {
-            if case .verified(let t) = result, t.productID == Self.productID, t.revocationDate == nil {
-                owned = true
+            if case .verified(let t) = result, Self.ids.contains(t.productID), t.revocationDate == nil {
+                owned = true   // currentEntitlements yalnızca aktif (süresi geçmemiş) abonelikleri döner
             }
         }
         setPurchased(owned)
     }
 
     @discardableResult
-    func buy() async -> Bool {
-        guard let product else { return false }
+    func buy(_ product: Product) async -> Bool {
         working = true; defer { working = false }
         do {
             switch try await product.purchase() {
@@ -59,9 +62,7 @@ import StoreKit
             for await update in Transaction.updates {
                 if case .verified(let t) = update {
                     await t.finish()
-                    if t.productID == Self.productID, t.revocationDate == nil {
-                        await self?.setPurchased(true)
-                    }
+                    await self?.refresh()
                 }
             }
         }
