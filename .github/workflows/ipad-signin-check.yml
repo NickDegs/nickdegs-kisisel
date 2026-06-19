@@ -53,6 +53,9 @@ jobs:
           [ -z "$UDID" ] && { echo "❌ uygun iPad oluşturulamadı"; exit 1; }
           xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
           xcrun simctl install "$UDID" "$APP"
+          # 0) runner API'ye erişebiliyor mu?
+          echo "=== runner -> API ==="
+          curl -sS -m 20 https://kisisel-api.nickdegs.com/health && echo "  [runner API OK]" || echo "  [RUNNER API ERİŞEMİYOR]"
           # 1) düz açılış = giriş ekranı (iPad'de render + alanlar)
           xcrun simctl launch "$UDID" "$BUNDLE" >/dev/null; sleep 5
           xcrun simctl io "$UDID" screenshot "$OUT/ipad_login.png"
@@ -63,6 +66,8 @@ jobs:
           xcrun simctl io "$UDID" screenshot "$OUT/ipad_after_login_12s.png"
           sleep 10
           xcrun simctl io "$UDID" screenshot "$OUT/ipad_after_login.png"
+          echo "=== uygulama logu (ağ/giriş izi) ==="
+          xcrun simctl spawn "$UDID" log show --last 40s --predicate 'process == "MoveLog"' 2>/dev/null | tail -40 || true
           xcrun simctl shutdown "$UDID" || true
           xcrun simctl delete "$UDID" || true
           echo "iPad doğrulama görselleri hazır."
