@@ -59,7 +59,9 @@ jobs:
           # 2) gerçek giriş (canlı API'ye) — başarılıysa ana ekran/tab bar görünür
           xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
           xcrun simctl launch "$UDID" "$BUNDLE" "AUTOLOGIN=appreview:Review-Move-2026" >/dev/null
-          sleep 9
+          sleep 12
+          xcrun simctl io "$UDID" screenshot "$OUT/ipad_after_login_12s.png"
+          sleep 10
           xcrun simctl io "$UDID" screenshot "$OUT/ipad_after_login.png"
           xcrun simctl shutdown "$UDID" || true
           xcrun simctl delete "$UDID" || true
