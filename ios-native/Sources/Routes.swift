@@ -28,8 +28,8 @@ struct RoutesView: View {
                                     .foregroundStyle(Brand.accent).frame(width: 50, height: 50).glassPanel(16)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(r.date).font(.system(size: 17, weight: .semibold))
-                                    Text("\(typeLabel(r.type)) · \(String(format: "%.1f", r.size/1048576)) MB")
-                                        .font(.caption).foregroundStyle(.secondary)
+                                    Label(typeLabel(r.type), systemImage: "play.circle.fill")
+                                        .font(.caption).foregroundStyle(.secondary).labelStyle(.titleAndIcon)
                                 }
                                 Spacer()
                                 Button(L("İzle","Play")) { play(r) }.buttonStyle(.glassy).fixedSize()
