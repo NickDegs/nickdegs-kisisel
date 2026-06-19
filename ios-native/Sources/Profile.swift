@@ -214,6 +214,7 @@ struct PaywallSheet: View {
     @EnvironmentObject var iap: IAP
     @Environment(\.dismiss) var dismiss
     @State private var failed = false
+    @State private var triedLoad = false
 
     var body: some View {
         ZStack {
@@ -226,16 +227,21 @@ struct PaywallSheet: View {
                     Text(L("Tüm premium yazı tiplerini aç.","Unlock all premium fonts."))
                         .font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
 
-                    // Yıllık — öne çıkan (en avantajlı)
-                    if let y = iap.yearly {
-                        planButton(y, period: L("yıl","yr"), badge: L("EN AVANTAJLI","BEST VALUE"))
-                    }
-                    // Aylık
-                    if let m = iap.monthly {
-                        planButton(m, period: L("ay","mo"), badge: nil)
-                    }
-                    if iap.monthly == nil && iap.yearly == nil {
-                        ProgressView().padding(.vertical, 8)
+                    // Planlar — gerçek StoreKit ürünleri (yıllık öne çıkan)
+                    if let y = iap.yearly { planButton(y, period: L("yıl","yr"), badge: L("EN AVANTAJLI","BEST VALUE")) }
+                    if let m = iap.monthly { planButton(m, period: L("ay","mo"), badge: nil) }
+                    if iap.monthly == nil, iap.yearly == nil {
+                        if AppEnv.demo {
+                            // demo/ekran görüntüsü: statik fiyatlar
+                            staticRow(L("Premium Yıllık","Premium Yearly"), "$29.99", L("yıl","yr"), L("EN AVANTAJLI","BEST VALUE"))
+                            staticRow(L("Premium Aylık","Premium Monthly"), "$4.99", L("ay","mo"), nil)
+                        } else if triedLoad {
+                            // gerçek: ürün yüklenemedi -> sonsuz spinner yerine yeniden dene
+                            Button(L("Planları yükle","Load plans")) { Task { await iap.load() } }.buttonStyle(.glassy)
+                            Text(L("Bağlantını kontrol et.","Check your connection.")).font(.caption2).foregroundStyle(.secondary)
+                        } else {
+                            ProgressView().padding(.vertical, 8)
+                        }
                     }
 
                     Button(L("Satın alımları geri yükle","Restore purchases")) {
@@ -259,7 +265,21 @@ struct PaywallSheet: View {
             }
         }
         .presentationDetents([.large])
-        .onAppear { if iap.monthly == nil && iap.yearly == nil { Task { await iap.load() } } }
+        .task { if iap.monthly == nil && iap.yearly == nil { await iap.load() }; triedLoad = true }
+    }
+
+    func staticRow(_ name: String, _ price: String, _ period: String, _ badge: String?) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(name).font(.system(size: 16, weight: .semibold))
+                Text("\(price) / \(period)").font(.subheadline).foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let badge {
+                Text(badge).font(.caption2.bold()).foregroundStyle(.white)
+                    .padding(.horizontal, 9).padding(.vertical, 5).background(Brand.gradient, in: Capsule())
+            }
+        }.frame(maxWidth: .infinity).padding(16).glassPanel(20)
     }
 
     func planButton(_ p: Product, period: String, badge: String?) -> some View {
