@@ -1,19 +1,22 @@
 import SwiftUI
 import AVKit
+import UIKit
 
 struct RoutesView: View {
     @EnvironmentObject var store: Store
     @State private var rides: [Ride] = []
     @State private var player: AVPlayer?
     @State private var showPlayer = false
+    @State private var savingId: String? = nil
+    @State private var savedId: String? = nil
 
     func typeLabel(_ t: String?) -> String {
         switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
         case "run": return L("Koşu","Running"); case "walk": return L("Yürüyüş","Walking"); default: return L("Diğer","Other") }
     }
     func typeIcon(_ t: String?) -> String {
-        switch t { case "moto": return "figure.outdoor.cycle"; case "bike": return "bicycle"
-        case "run": return "figure.run"; case "walk": return "figure.walk"; default: return "clock" }
+        switch t { case "moto": return "motorcycle"; case "bike": return "bicycle"
+        case "run": return "figure.run"; case "walk": return "figure.walk"; default: return "point.topleft.down.curvedto.point.bottomright.up" }
     }
 
     var body: some View {
@@ -28,11 +31,23 @@ struct RoutesView: View {
                                     .foregroundStyle(Brand.accent).frame(width: 50, height: 50).glassPanel(16)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(r.date).font(.system(size: 17, weight: .semibold))
-                                    Label(typeLabel(r.type), systemImage: "play.circle.fill")
-                                        .font(.caption).foregroundStyle(.secondary).labelStyle(.titleAndIcon)
+                                    Text(typeLabel(r.type)).font(.caption).foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Button(L("İzle","Play")) { play(r) }.buttonStyle(.glassy).fixedSize()
+                                // İzle
+                                Button { play(r) } label: {
+                                    Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                        .foregroundStyle(.white).frame(width: 42, height: 42)
+                                        .background(Brand.gradient, in: Circle())
+                                }.buttonStyle(.plain)
+                                // Kaydet (videoyu galeriye indir)
+                                Button { save(r) } label: {
+                                    Group {
+                                        if savingId == r.id { ProgressView() }
+                                        else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
+                                        else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
+                                    }.font(.system(size: 16, weight: .semibold)).frame(width: 42, height: 42).glassPanel(21)
+                                }.buttonStyle(.plain).disabled(savingId == r.id)
                             }
                             .padding(14).glassPanel(20).smoothAppear()
                         }
@@ -52,5 +67,23 @@ struct RoutesView: View {
         player = AVPlayer(playerItem: AVPlayerItem(asset: asset))
         showPlayer = true
         player?.play()
+    }
+
+    func save(_ r: Ride) {
+        savingId = r.id
+        Task {
+            defer { savingId = nil }
+            var req = URLRequest(url: store.videoURL(r.id))
+            for (k, v) in store.authHeader { req.setValue(v, forHTTPHeaderField: k) }
+            guard let (data, _) = try? await URLSession.shared.data(for: req) else { return }
+            let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("\(r.id).mp4")
+            try? data.write(to: tmp)
+            if UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(tmp.path) {
+                UISaveVideoAtPathToSavedPhotosAlbum(tmp.path, nil, nil, nil)
+            }
+            savedId = r.id
+            try? await Task.sleep(for: .seconds(2))
+            if savedId == r.id { savedId = nil }
+        }
     }
 }

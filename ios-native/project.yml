@@ -27,6 +27,7 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: "Move Log"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Profil ve sohbet fotoğraflarını seçmek için."
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Rota videolarını galerine kaydetmek için."
         INFOPLIST_KEY_NSCameraUsageDescription: "Fotoğraf çekip paylaşmak için."
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Canlı konumu haritada göstermek için."
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
