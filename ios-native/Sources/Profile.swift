@@ -26,6 +26,7 @@ struct ProfileView: View {
     @State private var showAvatar = false
     @State private var showAddFriend = false
     @State private var showPaywall = false
+    @State private var showDelete = false
 
     var body: some View {
         NavigationStack {
@@ -90,6 +91,9 @@ struct ProfileView: View {
 
                         Button(L("Çıkış","Sign out")) { store.logout() }
                             .buttonStyle(.glassy).padding(.top, 8).tint(.red)
+
+                        Button(L("Hesabı sil","Delete account")) { showDelete = true }
+                            .font(.footnote).foregroundStyle(.red).padding(.top, 2)
                     }.padding(16)
                 }
             }
@@ -106,6 +110,12 @@ struct ProfileView: View {
         .sheet(isPresented: $showAvatar) { AvatarSheet(onDone: { Task { prof = await store.profile() } }) }
         .sheet(isPresented: $showAddFriend) { AddFriendSheet(onDone: { Task { friends = await store.friends() } }) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
+        .confirmationDialog(L("Hesabını kalıcı olarak silmek istiyor musun? Tüm rota, sohbet ve profil verin silinir.",
+                              "Permanently delete your account? All your routes, chats and profile data will be removed."),
+                            isPresented: $showDelete, titleVisibility: .visible) {
+            Button(L("Hesabı sil","Delete account"), role: .destructive) { Task { await store.deleteAccount() } }
+            Button(L("Vazgeç","Cancel"), role: .cancel) {}
+        }
     }
 
     func stat(_ v: String, _ k: String) -> some View {

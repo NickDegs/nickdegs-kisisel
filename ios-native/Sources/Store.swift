@@ -76,6 +76,12 @@ struct Convo: Codable, Identifiable, Hashable {
     }
     func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
 
+    func deleteAccount() async {
+        _ = try? await req("/api/account", method: "DELETE")
+        UserDefaults.standard.removeObject(forKey: "nd_premium")
+        logout()
+    }
+
     func rides() async -> [Ride] {
         if AppEnv.demo { return DemoData.rides }
         return (try? dec().decode([String:[Ride]].self, from: await req("/api/rides"))["rides"]) ?? []
