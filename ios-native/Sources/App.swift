@@ -4,6 +4,7 @@ import SwiftUI
 struct MoveLogApp: App {
     @StateObject private var store = Store()
     @StateObject private var iap = IAP()
+    @StateObject private var cloud = CloudSync()
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     var design: Font.Design {
@@ -16,6 +17,7 @@ struct MoveLogApp: App {
             }
             .environmentObject(store)
             .environmentObject(iap)
+            .environmentObject(cloud)
             .tint(Brand.accent)
             .fontDesign(design)
             .preferredColorScheme(scheme == "light" ? .light : .dark)

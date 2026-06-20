@@ -17,6 +17,7 @@ let FONT_CHOICES: [FontChoice] = [
 
 struct ProfileView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var cloud: CloudSync
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     @AppStorage("nd_premium") var premium = false
@@ -88,6 +89,15 @@ struct ProfileView: View {
                             Text(L("Açık","Light")).tag("light")
                             Text(L("Koyu","Dark")).tag("dark")
                         }.pickerStyle(.segmented)
+
+                        Toggle(isOn: $cloud.enabled) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Label(L("iCloud yedekleme","iCloud backup"), systemImage: "icloud")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(L("Ayarların giriş gerekmeden cihazlarında saklanır","Your settings are kept across devices, no sign-in needed"))
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }.padding(14).glassPanel(18).tint(Brand.accent)
 
                         Button(L("Çıkış","Sign out")) { store.logout() }
                             .buttonStyle(.glassy).padding(.top, 8).tint(.red)
