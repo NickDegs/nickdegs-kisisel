@@ -131,6 +131,12 @@ struct Convo: Codable, Identifiable, Hashable {
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return nil }
         return o["url"] as? String
     }
+    func trackerInfo() async -> (id: String, url: String)? {
+        guard let d = try? await req("/api/tracker"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let id = o["deviceId"] as? String, let url = o["url"] as? String else { return nil }
+        return (id, url)
+    }
     func videoURL(_ id: String) -> URL { URL(string: API + "/api/rides/\(id)/video")! }
     var authHeader: [String:String] { ["Authorization": "Bearer " + token] }
 }

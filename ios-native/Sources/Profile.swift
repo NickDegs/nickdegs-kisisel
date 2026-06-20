@@ -18,6 +18,7 @@ let FONT_CHOICES: [FontChoice] = [
 struct ProfileView: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var cloud: CloudSync
+    @EnvironmentObject var tracker: Tracker
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     @AppStorage("nd_premium") var premium = false
@@ -83,6 +84,22 @@ struct ProfileView: View {
                             }.buttonStyle(.plain).glassPanel(16).smoothAppear()
                             .animation(.snappy(duration: 0.3), value: fontId)
                         }
+
+                        section(L("Rota kaydı","Ride tracking"))
+                        Toggle(isOn: Binding(
+                            get: { tracker.active },
+                            set: { on in
+                                if on { Task { if let t = await store.trackerInfo() { tracker.start(deviceId: t.id, url: t.url) } } }
+                                else { tracker.stop() }
+                            })) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Label(L("Rotamı kaydet","Track my ride"), systemImage: "location.fill.viewfinder")
+                                    .font(.system(size: 16, weight: .medium))
+                                Text(L("Açıkken konumun arka planda kaydedilir; gezilerin otomatik rota olur.",
+                                       "While on, your location is recorded in the background to auto-create your routes."))
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }.padding(14).glassPanel(18).tint(Brand.accent)
 
                         section(L("Görünüm","Appearance"))
                         Picker("", selection: $scheme) {
