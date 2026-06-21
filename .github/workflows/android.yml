@@ -31,10 +31,10 @@ jobs:
           npm install
           npx cap sync android
 
-      - name: Versiyon (build number = tarih)
+      - name: Versiyon (build number = epoch, <2.1 milyar)
         working-directory: android
         run: |
-          VC=$(date -u +%y%m%d%H%M)
+          VC=$(date -u +%s)
           sed -i "s/versionCode 1/versionCode $VC/" app/build.gradle
           echo "versionCode=$VC"
 
