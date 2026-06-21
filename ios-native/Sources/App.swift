@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct MoveLogApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var store = Store()
     @StateObject private var iap = IAP()
     @StateObject private var cloud = CloudSync()
@@ -42,7 +43,13 @@ struct RootView: View {
             ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.
-        .task { if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" } }
+        .task {
+            if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" }
+            await store.registerPush()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .ndApns)) { _ in
+            Task { await store.registerPush() }
+        }
     }
 }
 

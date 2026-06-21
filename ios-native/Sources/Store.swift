@@ -145,6 +145,10 @@ struct Convo: Codable, Identifiable, Hashable {
     func setName(_ name: String) async {
         _ = try? await req("/api/profile", method: "PUT", body: ["name": name])
     }
+    func registerPush() async {
+        guard !token.isEmpty, let t = UserDefaults.standard.string(forKey: "nd_apns") else { return }
+        _ = try? await req("/api/pushtoken", method: "POST", body: ["token": t])
+    }
     func musicList() async -> [[String:String]] {
         guard let d = try? await req("/api/music"),
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
