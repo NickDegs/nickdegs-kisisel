@@ -29,6 +29,8 @@ struct ProfileView: View {
     @State private var showAddFriend = false
     @State private var showPaywall = false
     @State private var showDelete = false
+    @State private var showRename = false
+    @State private var newName = ""
 
     var body: some View {
         NavigationStack {
@@ -46,8 +48,15 @@ struct ProfileView: View {
                                             .overlay(Circle().strokeBorder(Color(.systemBackground), lineWidth: 2))
                                     }
                             }
-                            Text(prof?.name ?? store.me).font(.system(size: 25, weight: .bold))
-                            Text(L("Move Log üyesi","Move Log member")).font(.caption).foregroundStyle(.secondary)
+                            Button {
+                                newName = prof?.name ?? ""; showRename = true
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Text(prof?.name ?? store.me).font(.system(size: 25, weight: .bold))
+                                    Image(systemName: "pencil").font(.caption).foregroundStyle(.secondary)
+                                }
+                            }.buttonStyle(.plain)
+                            Text(L("İsmin video başında görünür","Your name appears at the start of videos")).font(.caption).foregroundStyle(.secondary)
                         }.padding(.top, 8)
 
                         HStack(spacing: 12) {
@@ -141,6 +150,14 @@ struct ProfileView: View {
                               "Permanently delete your account? All your routes, chats and profile data will be removed."),
                             isPresented: $showDelete, titleVisibility: .visible) {
             Button(L("Hesabı sil","Delete account"), role: .destructive) { Task { await store.deleteAccount() } }
+            Button(L("Vazgeç","Cancel"), role: .cancel) {}
+        }
+        .alert(L("İsmin","Your name"), isPresented: $showRename) {
+            TextField(L("Ad Soyad","Full name"), text: $newName)
+            Button(L("Kaydet","Save")) {
+                let n = newName.trimmingCharacters(in: .whitespaces)
+                if !n.isEmpty { Task { await store.setName(n); prof = await store.profile() } }
+            }
             Button(L("Vazgeç","Cancel"), role: .cancel) {}
         }
     }

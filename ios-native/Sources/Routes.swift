@@ -31,7 +31,18 @@ struct RoutesView: View {
                                     .foregroundStyle(Brand.accent).frame(width: 50, height: 50).glassPanel(16)
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(r.date).font(.system(size: 17, weight: .semibold))
-                                    Text(typeLabel(r.type)).font(.caption).foregroundStyle(.secondary)
+                                    Menu {
+                                        ForEach(RIDE_TYPES, id: \.id) { t in
+                                            Button {
+                                                Task { if await store.setRideType(r.id, t.id) { rides = await store.rides() } }
+                                            } label: { Label(rideLabel(t.id), systemImage: t.icon) }
+                                        }
+                                    } label: {
+                                        HStack(spacing: 3) {
+                                            Text(typeLabel(r.type))
+                                            Image(systemName: "chevron.down").font(.system(size: 9))
+                                        }.font(.caption).foregroundStyle(.secondary)
+                                    }
                                 }
                                 Spacer()
                                 // İzle
