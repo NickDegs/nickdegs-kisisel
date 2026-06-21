@@ -3,7 +3,14 @@ import PhotosUI
 import UIKit
 import StoreKit
 
-let EMOJIS = ["🙂","😎","🧑","👩","🧔","🦊","🦁","🐯","🦅","🏍️","🚲","🏃","🏔️","🌊","⚡️","🔥","⭐️","🎯"]
+let EMOJIS = [
+    "🙂","😎","😀","😍","🤩","😇","🤠","🥳","😴","🤓","🧐","🤔",
+    "🧑","👩","🧔","👨","👵","👴","🧕","👮","🧑‍🚀","🦸","🧙","🧑‍🎤",
+    "🦊","🦁","🐯","🐺","🐻","🐼","🐶","🐱","🦅","🦉","🐴","🦄",
+    "🏍️","🚗","🚲","🛵","🚙","✈️","🚁","⛵️","🏎️","🛻","🚜","🛴",
+    "🏃","🚶","🚴","🏔️","🌊","🏕️","🌅","🌍","🌙","☀️","🌈","🛣️",
+    "⚡️","🔥","⭐️","🎯","🏆","💎","🎸","🎮","📷","🧭","🗺️","❤️",
+]
 
 struct FontChoice: Identifiable, Hashable {
     var id: String; var label: String; var design: Font.Design; var free: Bool
@@ -178,20 +185,26 @@ struct AvatarSheet: View {
     @EnvironmentObject var store: Store
     @Environment(\.dismiss) var dismiss
     var onDone: () -> Void
-    @State private var photoItem: PhotosPickerItem?
+    @State private var showPicker = false
     @State private var uploading = false
 
     var body: some View {
         ZStack {
             AuroraBackground()
             ScrollView {
-                VStack(spacing: 18) {
+                VStack(spacing: 14) {
                     Text(L("Profil resmi","Profile picture")).font(.title2.bold())
 
-                    PhotosPicker(selection: $photoItem, matching: .images) {
+                    Button { showPicker = true } label: {
                         if uploading { ProgressView() }
-                        else { Label(L("Fotoğraf seç","Choose photo"), systemImage: "photo.on.rectangle") }
+                        else { Label(L("Fotoğraf seç ve kırp","Choose & crop photo"), systemImage: "crop") }
                     }.buttonStyle(.glassyProminent()).disabled(uploading)
+
+                    Button(role: .destructive) {
+                        Task { await store.setAvatar(Avatar(type: "initials")); onDone(); dismiss() }
+                    } label: {
+                        Label(L("Fotoğrafı kaldır","Remove photo"), systemImage: "trash").font(.subheadline)
+                    }.foregroundStyle(.red)
 
                     Text(L("VEYA EMOJİ SEÇ","OR PICK AN EMOJI")).font(.caption).foregroundStyle(.secondary).padding(.top, 4)
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
@@ -205,18 +218,42 @@ struct AvatarSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
-        .onChange(of: photoItem) { _, item in
-            guard let item else { return }
-            uploading = true
-            Task {
-                defer { uploading = false }
-                guard let data = try? await item.loadTransferable(type: Data.self),
-                      let img = UIImage(data: data),
-                      let jpeg = img.scaled(maxDim: 512).jpegData(compressionQuality: 0.8) else { return }
-                _ = await store.uploadPhoto(jpeg)
-                onDone(); dismiss()
-            }
+        .sheet(isPresented: $showPicker) {
+            ImageCropPicker(onImage: { img in
+                showPicker = false; uploading = true
+                Task {
+                    defer { uploading = false }
+                    if let jpeg = img.scaled(maxDim: 512).jpegData(compressionQuality: 0.85) {
+                        _ = await store.uploadPhoto(jpeg); onDone(); dismiss()
+                    }
+                }
+            }, onCancel: { showPicker = false })
+            .ignoresSafeArea()
         }
+    }
+}
+
+// Yerleşik kare kırpma (UIImagePickerController allowsEditing)
+struct ImageCropPicker: UIViewControllerRepresentable {
+    var onImage: (UIImage) -> Void
+    var onCancel: () -> Void
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let p = UIImagePickerController()
+        p.sourceType = .photoLibrary
+        p.allowsEditing = true
+        p.delegate = context.coordinator
+        return p
+    }
+    func updateUIViewController(_ vc: UIImagePickerController, context: Context) {}
+    func makeCoordinator() -> Coordinator { Coordinator(onImage: onImage, onCancel: onCancel) }
+    final class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let onImage: (UIImage) -> Void; let onCancel: () -> Void
+        init(onImage: @escaping (UIImage) -> Void, onCancel: @escaping () -> Void) { self.onImage = onImage; self.onCancel = onCancel }
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            let img = (info[.editedImage] as? UIImage) ?? (info[.originalImage] as? UIImage)
+            if let img { onImage(img) } else { onCancel() }
+        }
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) { onCancel() }
     }
 }
 
