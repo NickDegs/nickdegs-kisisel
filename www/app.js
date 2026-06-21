@@ -8,8 +8,8 @@ const show = (id) => { document.querySelectorAll(".screen").forEach(s => s.class
 
 /* ---------------- i18n ---------------- */
 const I18N = {
-  en: { tagline:"Routes · Activity · Live location", user:"Username", password:"Password", signin:"Sign in", err:"Incorrect username or password", rides:"Routes", gps:"Map", stats:"Stats", profile:"Profile", watch:"Play", loading:"Loading…", failed:"Failed to load.", noRides:"No route videos yet.", noLoc:"No location data.", kmh:"km/h", online:"Online", offline:"Offline", totalRoutes:"Total routes", lastRoute:"Latest route", tracked:"People tracked", trackedList:"Tracked people", memberSub:"Move Log member", t_moto:"Motorcycle", t_bike:"Cycling", t_run:"Running", t_walk:"Walking", t_other:"Other" },
-  tr: { tagline:"Rotalar · Aktivite · Canlı konum", user:"Kullanıcı", password:"Parola", signin:"Giriş yap", err:"Kullanıcı adı veya parola hatalı", rides:"Rotalar", gps:"Harita", stats:"İstatistik", profile:"Profil", watch:"İzle", loading:"Yükleniyor…", failed:"Yüklenemedi.", noRides:"Henüz rota videosu yok.", noLoc:"Konum verisi yok.", kmh:"km/s", online:"Çevrimiçi", offline:"Çevrimdışı", totalRoutes:"Toplam rota", lastRoute:"Son rota", tracked:"Takip edilen", trackedList:"Takip edilenler", memberSub:"Move Log üyesi", t_moto:"Motosiklet", t_bike:"Bisiklet", t_run:"Koşu", t_walk:"Yürüyüş", t_other:"Diğer" },
+  en: { tagline:"Routes · Activity · Live location", user:"Username", password:"Password", signin:"Sign in", sendcode:"Send code", verify:"Verify & sign in", err:"Wrong number or code, try again", rides:"Routes", gps:"Map", stats:"Stats", profile:"Profile", watch:"Play", loading:"Loading…", failed:"Failed to load.", noRides:"No route videos yet.", noLoc:"No location data.", kmh:"km/h", online:"Online", offline:"Offline", totalRoutes:"Total routes", lastRoute:"Latest route", tracked:"People tracked", trackedList:"Tracked people", memberSub:"Move Log member", t_moto:"Motorcycle", t_bike:"Cycling", t_run:"Running", t_walk:"Walking", t_other:"Other" },
+  tr: { tagline:"Rotalar · Aktivite · Canlı konum", user:"Kullanıcı", password:"Parola", signin:"Giriş yap", sendcode:"Kod gönder", verify:"Doğrula ve gir", err:"Numara veya kod hatalı, tekrar dene", rides:"Rotalar", gps:"Harita", stats:"İstatistik", profile:"Profil", watch:"İzle", loading:"Yükleniyor…", failed:"Yüklenemedi.", noRides:"Henüz rota videosu yok.", noLoc:"Konum verisi yok.", kmh:"km/s", online:"Çevrimiçi", offline:"Çevrimdışı", totalRoutes:"Toplam rota", lastRoute:"Son rota", tracked:"Takip edilen", trackedList:"Takip edilenler", memberSub:"Move Log üyesi", t_moto:"Motosiklet", t_bike:"Bisiklet", t_run:"Koşu", t_walk:"Yürüyüş", t_other:"Diğer" },
   de: { tagline:"Routen · Aktivität · Live-Standort", user:"Benutzer", password:"Passwort", signin:"Anmelden", err:"Benutzername oder Passwort falsch", rides:"Routen", gps:"Karte", stats:"Statistik", profile:"Profil", watch:"Ansehen", loading:"Wird geladen…", failed:"Laden fehlgeschlagen.", noRides:"Noch keine Routenvideos.", noLoc:"Keine Standortdaten.", kmh:"km/h", online:"Online", offline:"Offline", totalRoutes:"Routen gesamt", lastRoute:"Letzte Route", tracked:"Verfolgte Personen", trackedList:"Verfolgte Personen", memberSub:"Move Log-Mitglied", t_moto:"Motorrad", t_bike:"Radfahren", t_run:"Laufen", t_walk:"Gehen", t_other:"Sonstige" },
   fr: { tagline:"Itinéraires · Activité · Position en direct", user:"Identifiant", password:"Mot de passe", signin:"Se connecter", err:"Identifiant ou mot de passe incorrect", rides:"Itinéraires", gps:"Carte", stats:"Stats", profile:"Profil", watch:"Lire", loading:"Chargement…", failed:"Échec du chargement.", noRides:"Aucune vidéo d'itinéraire.", noLoc:"Aucune position.", kmh:"km/h", online:"En ligne", offline:"Hors ligne", totalRoutes:"Itinéraires au total", lastRoute:"Dernier itinéraire", tracked:"Personnes suivies", trackedList:"Personnes suivies", memberSub:"Membre Move Log", t_moto:"Moto", t_bike:"Vélo", t_run:"Course", t_walk:"Marche", t_other:"Autre" },
   es: { tagline:"Rutas · Actividad · Ubicación en vivo", user:"Usuario", password:"Contraseña", signin:"Iniciar sesión", err:"Usuario o contraseña incorrectos", rides:"Rutas", gps:"Mapa", stats:"Stats", profile:"Perfil", watch:"Ver", loading:"Cargando…", failed:"Error al cargar.", noRides:"Aún no hay vídeos de rutas.", noLoc:"Sin ubicación.", kmh:"km/h", online:"En línea", offline:"Sin conexión", totalRoutes:"Rutas totales", lastRoute:"Última ruta", tracked:"Personas seguidas", trackedList:"Personas seguidas", memberSub:"Miembro de Move Log", t_moto:"Motocicleta", t_bike:"Ciclismo", t_run:"Correr", t_walk:"Caminar", t_other:"Otro" },
@@ -209,12 +209,26 @@ async function api(path, opts = {}) {
   return r.json();
 }
 
-// ---- auth ----
-async function login() {
+// ---- auth (SMS-OTP) ----
+function fullPhone() {
+  let cc = ($("#cc").value || "+90").replace(/[^\d+]/g, ""); if (!cc.startsWith("+")) cc = "+" + cc;
+  return cc + ($("#ph").value || "").replace(/\D/g, "");
+}
+async function sendCode() {
+  $("#loginErr").textContent = "";
+  const phone = fullPhone();
+  if (phone.replace(/\D/g, "").length < 9) { $("#loginErr").textContent = T.err; return; }
+  try {
+    await fetch(API + "/auth/sms/start", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }) }).then(r => r.ok ? r.json() : Promise.reject(r));
+    $("#loginPhone").style.display = "none"; $("#loginCode").style.display = "block"; $("#code").focus();
+  } catch (e) { $("#loginErr").textContent = T.err; }
+}
+async function verifyCode() {
   $("#loginErr").textContent = "";
   try {
-    const d = await fetch(API + "/auth/login", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user: $("#u").value.trim(), password: $("#p").value }) }).then(r => r.ok ? r.json() : Promise.reject(r));
+    const d = await fetch(API + "/auth/sms/verify", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: fullPhone(), code: ($("#code").value || "").replace(/\D/g, "") }) }).then(r => r.ok ? r.json() : Promise.reject(r));
     TOKEN = d.token; localStorage.setItem("nd_token", TOKEN); enterApp();
   } catch (e) { $("#loginErr").textContent = T.err; }
 }
@@ -492,8 +506,12 @@ applyI18n();
   $("#pwBuy").onclick = buyPremium; $("#pwLater").onclick = closePaywall;
   document.querySelectorAll(".modal.sheet").forEach(m => m.addEventListener("click", e => { if (e.target === m) m.classList.remove("active"); }));
 })();
-$("#loginBtn").onclick = login;
-$("#p").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+$("#sendCodeBtn").onclick = sendCode;
+$("#verifyBtn").onclick = verifyCode;
+$("#ph").addEventListener("keydown", e => { if (e.key === "Enter") sendCode(); });
+$("#code").addEventListener("keydown", e => { if (e.key === "Enter") verifyCode(); });
+$("#changeNum").onclick = (e) => { e.preventDefault(); $("#loginCode").style.display = "none"; $("#loginPhone").style.display = "block"; $("#loginErr").textContent = ""; };
+$("#resendCode").onclick = (e) => { e.preventDefault(); sendCode(); };
 $("#logout").onclick = logout;
 $("#themeBtn").onclick = toggleTheme;
 // chat

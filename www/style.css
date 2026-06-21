@@ -260,3 +260,9 @@ img.avatar{object-fit:cover}
 .chatrow .badge{flex:0 0 auto;min-width:22px;height:22px;padding:0 7px;border-radius:11px;
   background:var(--acc-grad);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center}
 .chatrow .meta .d{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* SMS giriş */
+.phonerow{display:flex;gap:8px}
+.phonerow #ph{flex:1}
+.codeactions{margin-top:10px;font-size:13px;text-align:center;opacity:.8}
+.codeactions a{color:inherit}

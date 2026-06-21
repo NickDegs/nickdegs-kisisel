@@ -17,9 +17,20 @@
     </div>
     <div class="logo">Move Log</div>
     <p class="sub" data-i18n="tagline">Routes · Activity · Live location</p>
-    <input id="u" autocapitalize="none" autocomplete="username" data-i18n-ph="user">
-    <input id="p" type="password" autocomplete="current-password" data-i18n-ph="password">
-    <button id="loginBtn" data-i18n="signin">Sign in</button>
+    <!-- 1) Telefon -->
+    <div id="loginPhone">
+      <div class="phonerow">
+        <input id="cc" inputmode="tel" value="+90" style="max-width:64px;text-align:center">
+        <input id="ph" inputmode="tel" autocomplete="tel" placeholder="Telefon / Phone">
+      </div>
+      <button id="sendCodeBtn" data-i18n="sendcode">Kod gönder</button>
+    </div>
+    <!-- 2) Kod -->
+    <div id="loginCode" style="display:none">
+      <input id="code" inputmode="numeric" autocomplete="one-time-code" placeholder="6 haneli kod / 6-digit code" style="text-align:center;letter-spacing:4px">
+      <button id="verifyBtn" data-i18n="verify">Doğrula ve gir</button>
+      <div class="codeactions"><a href="#" id="changeNum">Numarayı değiştir</a> · <a href="#" id="resendCode">Tekrar gönder</a></div>
+    </div>
     <div id="loginErr" class="err"></div>
   </div>
 </section>
