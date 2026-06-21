@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Move Log</string>
+    <string name="title_activity_main">Move Log</string>
+    <string name="package_name">com.nickdegs.kisisel</string>
+    <string name="custom_url_scheme">com.nickdegs.kisisel</string>
+</resources>
