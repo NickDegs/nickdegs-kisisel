@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // Aktivite tipleri (her yerde ortak)
 let RIDE_TYPES: [(id: String, icon: String)] = [
@@ -21,11 +22,14 @@ struct GenerateSheet: View {
     let to: Double
     @State var type: String
     @AppStorage("nd_premium") var premium = false
-    @State private var mode = "flyover"
+    @State private var mode = "3d"
     @State private var aspect = "16:9"
     @State private var sending = false
     @State private var done = false
     @State private var showPaywall = false
+    @State private var stock: [[String:String]] = []
+    @State private var music = ""               // "", "stock:<id>", "upload"
+    @State private var showAudioPicker = false
 
     var body: some View {
         ZStack {
@@ -43,13 +47,32 @@ struct GenerateSheet: View {
 
                     field(L("Görünüm","Style"))
                     modeRow("flat", L("Düz","Flat"), free: true)
-                    modeRow("flyover", L("Kuş bakışı (Flyover)","Flyover"), free: false)
-                    modeRow("3d", L("3B Takip","3D"), free: false)
+                    modeRow("3d", L("Flyover · 3B kuş bakışı","Flyover · 3D"), free: false)
 
                     field(L("En-boy","Aspect"))
                     Picker("", selection: $aspect) {
                         Text("16:9").tag("16:9"); Text("9:16").tag("9:16")
                     }.pickerStyle(.segmented)
+
+                    field(L("Müzik","Music"))
+                    Menu {
+                        Button(L("Yok","None")) { music = "" }
+                        ForEach(stock, id: \.self) { s in
+                            Button(s["name"] ?? "") {
+                                if premium { music = "stock:\(s["id"] ?? "")" } else { showPaywall = true }
+                            }
+                        }
+                        Button(L("Kendi müziğin… (yükle)","Your own… (upload)")) {
+                            if premium { showAudioPicker = true } else { showPaywall = true }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "music.note")
+                            Text(musicLabel)
+                            if !premium { Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary) }
+                            Spacer(); Image(systemName: "chevron.down").font(.caption2)
+                        }.padding(.horizontal, 14).padding(.vertical, 12)
+                    }.buttonStyle(.plain).glassPanel(14).tint(.primary)
 
                     if !premium {
                         Text(L("Ücretsiz: 720p + filigran (Düz mod). Premium: 1080p, filigransız, Flyover/3B, müzik.",
@@ -62,7 +85,8 @@ struct GenerateSheet: View {
                         sending = true
                         Task {
                             let ok = await store.generateRide(from: from, to: to, type: type,
-                                                              mode: useMode, aspect: aspect, premium: premium)
+                                                              mode: useMode, aspect: aspect, premium: premium,
+                                                              music: premium ? music : "")
                             sending = false; done = ok
                             if ok { try? await Task.sleep(for: .seconds(1)); dismiss() }
                         }
@@ -79,6 +103,28 @@ struct GenerateSheet: View {
         }
         .presentationDetents([.large])
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
+        .task { stock = await store.musicList() }
+        .fileImporter(isPresented: $showAudioPicker, allowedContentTypes: [.audio]) { res in
+            if case .success(let url) = res {
+                Task {
+                    let ok = url.startAccessingSecurityScopedResource()
+                    defer { if ok { url.stopAccessingSecurityScopedResource() } }
+                    if let data = try? Data(contentsOf: url), data.count < 12_000_000 {
+                        await store.addRideMusic(session: from, data: data)
+                        music = "upload"
+                    }
+                }
+            }
+        }
+    }
+
+    var musicLabel: String {
+        if music == "upload" { return L("Kendi müziğin","Your music") }
+        if music.hasPrefix("stock:") {
+            let id = String(music.dropFirst(6))
+            return stock.first { $0["id"] == id }?["name"] ?? id
+        }
+        return L("Yok","None")
     }
 
     func field(_ t: String) -> some View {

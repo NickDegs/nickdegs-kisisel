@@ -145,6 +145,16 @@ struct Convo: Codable, Identifiable, Hashable {
     func setName(_ name: String) async {
         _ = try? await req("/api/profile", method: "PUT", body: ["name": name])
     }
+    func musicList() async -> [[String:String]] {
+        guard let d = try? await req("/api/music"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let s = o["stock"] as? [[String:Any]] else { return [] }
+        return s.map { item in item.mapValues { "\($0)" } }
+    }
+    func addRideMusic(session: Double, data: Data) async {
+        let dataURL = "data:audio/m4a;base64," + data.base64EncodedString()
+        _ = try? await req("/api/rides/music", method: "POST", body: ["session": session, "data": dataURL])
+    }
     func addRidePhoto(session: Double, jpeg: Data, lat: Double, lon: Double) async {
         let dataURL = "data:image/jpeg;base64," + jpeg.base64EncodedString()
         _ = try? await req("/api/rides/photo", method: "POST",
