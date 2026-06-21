@@ -137,6 +137,13 @@ struct Convo: Codable, Identifiable, Hashable {
               let id = o["deviceId"] as? String, let url = o["url"] as? String else { return nil }
         return (id, url)
     }
+    func generateRide(from: Double, to: Double, type: String, mode: String, aspect: String, premium: Bool, music: String = "") async -> Bool {
+        let body: [String:Any] = ["from": from, "to": to, "type": type, "mode": mode,
+                                  "aspect": aspect, "premium": premium, "music": music]
+        guard let d = try? await req("/api/rides/generate", method: "POST", body: body),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
+        return (o["ok"] as? Bool) ?? false
+    }
     func videoURL(_ id: String) -> URL { URL(string: API + "/api/rides/\(id)/video")! }
     var authHeader: [String:String] { ["Authorization": "Bearer " + token] }
 }

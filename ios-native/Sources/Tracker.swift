@@ -4,14 +4,17 @@ import CoreLocation
 final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let mgr = CLLocationManager()
     @Published var active = UserDefaults.standard.bool(forKey: "nd_tracking")
+    @Published var recording = false        // manuel gezi kaydı sürüyor mu
+    @Published var rideType = "moto"        // manuel gezi tipi
+    @Published var rideStart: Date?         // manuel gezi başlangıcı
     private var deviceId: String?
     private var ingestURL: String?
 
     override init() {
         super.init()
         mgr.delegate = self
-        mgr.desiredAccuracy = kCLLocationAccuracyBest
-        mgr.distanceFilter = 20                       // her 20m'de bir gönder
+        mgr.desiredAccuracy = kCLLocationAccuracyBestForNavigation
+        mgr.distanceFilter = 6                        // sık gönder (sağlıklı algılama)
         // Sadece Info.plist UIBackgroundModes=location içeriyorsa aç (yoksa çökmesin)
         let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
         if modes.contains("location") { mgr.allowsBackgroundLocationUpdates = true }
@@ -31,6 +34,23 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     func stop() {
         mgr.stopUpdatingLocation()
         set(false)
+    }
+
+    // --- Manuel gezi kaydı (tip seçilebilir + sonradan değiştirilebilir) ---
+    func startRide(type: String, deviceId: String, url: String) {
+        self.deviceId = deviceId; self.ingestURL = url
+        let st = mgr.authorizationStatus
+        if st == .notDetermined || st == .authorizedWhenInUse { mgr.requestAlwaysAuthorization() }
+        mgr.startUpdatingLocation()
+        DispatchQueue.main.async { self.rideType = type; self.rideStart = Date(); self.recording = true }
+    }
+
+    func endRide() -> (from: Double, to: Double, type: String)? {
+        guard let s = rideStart else { return nil }
+        let r = (s.timeIntervalSince1970, Date().timeIntervalSince1970, rideType)
+        if !active { mgr.stopUpdatingLocation() }      // oto-takip kapalıysa GPS'i durdur
+        DispatchQueue.main.async { self.recording = false; self.rideStart = nil }
+        return r
     }
 
     private func set(_ v: Bool) {
