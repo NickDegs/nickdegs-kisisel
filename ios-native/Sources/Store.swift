@@ -61,19 +61,34 @@ struct Convo: Codable, Identifiable, Hashable {
             } else { loginError = true }
         } catch { loginError = true }
     }
-    func loginWithApple(_ identityToken: String, name: String) async {
+    // SMS-OTP: kod gönder
+    func smsStart(_ phone: String) async -> Bool {
         loginError = false
         do {
-            var r = URLRequest(url: URL(string: API + "/auth/apple")!)
+            var r = URLRequest(url: URL(string: API + "/auth/sms/start")!)
             r.httpMethod = "POST"; r.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            r.httpBody = try JSONSerialization.data(withJSONObject: ["identity_token": identityToken, "name": name])
-            let (data, _) = try await URLSession.shared.data(for: r)
-            if let o = try JSONSerialization.jsonObject(with: data) as? [String:Any], let t = o["token"] as? String {
+            r.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone])
+            let (_, resp) = try await URLSession.shared.data(for: r)
+            if let h = resp as? HTTPURLResponse, h.statusCode < 300 { return true }
+        } catch {}
+        loginError = true; return false
+    }
+    // SMS-OTP: kodu doğrula ve gir
+    func smsVerify(_ phone: String, _ code: String) async {
+        loginError = false
+        do {
+            var r = URLRequest(url: URL(string: API + "/auth/sms/verify")!)
+            r.httpMethod = "POST"; r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            r.httpBody = try JSONSerialization.data(withJSONObject: ["phone": phone, "code": code])
+            let (data, resp) = try await URLSession.shared.data(for: r)
+            if let h = resp as? HTTPURLResponse, h.statusCode < 300,
+               let o = try JSONSerialization.jsonObject(with: data) as? [String:Any], let t = o["token"] as? String {
                 token = t; me = (o["user"] as? String) ?? ""
                 UserDefaults.standard.set(t, forKey: "nd_token")
             } else { loginError = true }
         } catch { loginError = true }
     }
+
     func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
 
     func deleteAccount() async {
