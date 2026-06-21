@@ -1,5 +1,7 @@
 import SwiftUI
 import MapKit
+import PhotosUI
+import UIKit
 
 struct MapTab: View {
     @EnvironmentObject var store: Store
@@ -9,6 +11,7 @@ struct MapTab: View {
     @State private var centered = false
     @State private var showTypePicker = false
     @State private var genRange: GenRange?
+    @State private var photoItem: PhotosPickerItem?
     @State private var cam: MapCameraPosition = .userLocation(fallback: .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 41.0, longitude: 29.0),
         span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4))))
@@ -81,10 +84,28 @@ struct MapTab: View {
                     Label(rideLabel(tracker.rideType), systemImage: "chevron.up.chevron.down").font(.system(size: 15, weight: .semibold))
                 }
                 Spacer()
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    Image(systemName: "camera.fill").font(.system(size: 16, weight: .semibold))
+                        .frame(width: 40, height: 40).glassPanel(20)
+                }
                 Button(L("Bitir","Finish")) {
                     if let r = tracker.endRide() { genRange = GenRange(from: r.from, to: r.to, type: r.type) }
                 }.buttonStyle(.glassyProminent()).tint(.red)
             }.padding(14).glassPanel(22)
+            .onChange(of: photoItem) { _, item in
+                guard let item, let start = tracker.rideStart else { return }
+                let session = start.timeIntervalSince1970
+                let coord = loc.coordinate
+                Task {
+                    if let data = try? await item.loadTransferable(type: Data.self),
+                       let img = UIImage(data: data),
+                       let jpeg = img.scaled(maxDim: 1024).jpegData(compressionQuality: 0.8) {
+                        await store.addRidePhoto(session: session, jpeg: jpeg,
+                                                 lat: coord?.latitude ?? 0, lon: coord?.longitude ?? 0)
+                    }
+                    photoItem = nil
+                }
+            }
         } else {
             Button {
                 showTypePicker = true
