@@ -451,8 +451,17 @@ struct PaywallSheet: View {
                         Button(L("Satın alımları geri yükle","Restore purchases")) {
                             Task { await iap.restore(); premium = iap.purchased; if iap.purchased { dismiss() } }
                         }.font(.footnote).foregroundStyle(.secondary).padding(.top, 2)
-                        if failed { Text(L("Satın alma tamamlanmadı.","Purchase didn’t complete."))
-                            .font(.footnote).foregroundStyle(.red) }
+                        if let e = iap.lastError {
+                            Text(e).font(.footnote).foregroundStyle(.red)
+                                .multilineTextAlignment(.center).padding(.horizontal, 8)
+                        } else if failed {
+                            Text(L("Satın alma tamamlanmadı.","Purchase didn’t complete."))
+                                .font(.footnote).foregroundStyle(.red)
+                        }
+                        if let m = iap.loadMsg {
+                            Text(m).font(.caption2).foregroundStyle(.orange)
+                                .multilineTextAlignment(.center).padding(.horizontal, 8)
+                        }
                         Text(L("Abonelik otomatik yenilenir; dönem sonundan en az 24 saat önce iptal etmezsen ücretlendirilirsin. Ayarlar’dan istediğin zaman iptal edebilirsin.",
                                "Subscription auto-renews unless canceled at least 24h before the period ends. Manage or cancel anytime in Settings."))
                             .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.top, 6)
