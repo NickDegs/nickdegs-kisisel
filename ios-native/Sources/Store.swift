@@ -13,6 +13,7 @@ struct Position: Codable, Identifiable, Hashable {
     var id: String { device }
 }
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
+struct Announcement: Identifiable { var title: String; var body: String; var url: String; var ts: Int; var id: Int { ts } }
 struct Friend: Codable, Identifiable, Hashable {
     var username: String; var name: String?; var avatar: Avatar?; var online: Bool?
     var id: String { username }
@@ -185,6 +186,15 @@ struct Convo: Codable, Identifiable, Hashable {
         guard let d = try? await req("/api/rides/generate", method: "POST", body: body),
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
+    }
+    // Uygulama içi duyuru (admin panelinden)
+    func announcement() async -> Announcement? {
+        guard let d = try? await req("/api/announcement"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let a = o["announcement"] as? [String:Any],
+              let t = a["title"] as? String, !t.isEmpty else { return nil }
+        return Announcement(title: t, body: a["body"] as? String ?? "",
+                            url: a["url"] as? String ?? "", ts: (a["ts"] as? Int) ?? 0)
     }
     // Hediye kodu → premium (sunucu doğrular)
     @discardableResult

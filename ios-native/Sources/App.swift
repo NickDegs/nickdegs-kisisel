@@ -31,6 +31,8 @@ struct MoveLogApp: App {
 struct RootView: View {
     @EnvironmentObject var store: Store
     @State private var sel = RootView.initialTab()
+    @State private var ann: Announcement?
+    @AppStorage("nd_ann_seen") private var annSeen = 0
     static func initialTab() -> Int {
         switch AppEnv.screen { case "chat": return 1; case "gps","map": return 2; case "stats": return 3; case "profile","paywall","avatar": return 4; default: return 0 }
     }
@@ -43,13 +45,47 @@ struct RootView: View {
             ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.
+        .safeAreaInset(edge: .top) {
+            if let a = ann, a.ts > annSeen {
+                AnnouncementBanner(a: a) { annSeen = a.ts; withAnimation { ann = nil } }
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
         .task {
             if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" }
             await store.registerPush()
+            if let a = await store.announcement(), a.ts > annSeen { withAnimation { ann = a } }
         }
         .onReceive(NotificationCenter.default.publisher(for: .ndApns)) { _ in
             Task { await store.registerPush() }
         }
+    }
+}
+
+// Admin panelinden gelen uygulama içi duyuru banner'ı
+struct AnnouncementBanner: View {
+    let a: Announcement
+    var onClose: () -> Void
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "megaphone.fill").font(.system(size: 17, weight: .semibold)).foregroundStyle(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(a.title).font(.system(size: 15, weight: .bold)).foregroundStyle(.white)
+                if !a.body.isEmpty {
+                    Text(a.body).font(.caption).foregroundStyle(.white.opacity(0.92)).fixedSize(horizontal: false, vertical: true)
+                }
+                if !a.url.isEmpty, let u = URL(string: a.url) {
+                    Link(L("Detay","Details"), destination: u).font(.caption.bold()).tint(.white).padding(.top, 2)
+                }
+            }
+            Spacer(minLength: 4)
+            Button(action: onClose) { Image(systemName: "xmark").font(.caption.bold()).foregroundStyle(.white.opacity(0.85)) }
+        }
+        .padding(14)
+        .background(Brand.gradient, in: RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(.white.opacity(0.2)))
+        .shadow(color: .black.opacity(0.25), radius: 10, y: 4)
+        .padding(.horizontal, 12).padding(.top, 6)
     }
 }
 
