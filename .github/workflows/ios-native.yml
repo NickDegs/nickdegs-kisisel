@@ -114,3 +114,53 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
           echo "✅ Native build TestFlight'a yüklendi"
+
+      - name: Auto-distribute to internal TestFlight
+        continue-on-error: true
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          pip3 install --quiet --break-system-packages cryptography 2>/dev/null || pip3 install --quiet cryptography
+          python3 - <<'PY'
+          import os, time, json, base64, urllib.request, urllib.error
+          from cryptography.hazmat.primitives import hashes, serialization
+          from cryptography.hazmat.primitives.asymmetric import ec, utils
+          KID = os.environ["ASC_KEY_ID"]; ISS = os.environ["ASC_ISSUER_ID"]
+          APP = "6780779399"
+          GROUPS = ["8de9367e-e636-426d-a574-86fa0d69e7f5", "3f83e5d0-92f0-4917-be9d-9fb2ee53eb9a"]
+          key = serialization.load_pem_private_key(
+              open(os.path.expanduser(f"~/.appstoreconnect/private_keys/AuthKey_{KID}.p8"), "rb").read(), password=None)
+          def b64(d): return base64.urlsafe_b64encode(d).rstrip(b"=")
+          def jwt():
+              now = int(time.time())
+              h = b64(json.dumps({"alg": "ES256", "kid": KID, "typ": "JWT"}).encode())
+              p = b64(json.dumps({"iss": ISS, "iat": now, "exp": now + 1000, "aud": "appstoreconnect-v1"}).encode())
+              si = h + b"." + p
+              r, s = utils.decode_dss_signature(key.sign(si, ec.ECDSA(hashes.SHA256())))
+              return (si + b"." + b64(r.to_bytes(32, "big") + s.to_bytes(32, "big"))).decode()
+          def api(method, path, body=None):
+              req = urllib.request.Request("https://api.appstoreconnect.apple.com" + path,
+                  data=json.dumps(body).encode() if body else None, method=method,
+                  headers={"Authorization": "Bearer " + jwt(), "Content-Type": "application/json"})
+              try:
+                  r = urllib.request.urlopen(req); return r.status, json.loads(r.read() or b"{}")
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode()
+          bid = None
+          for _ in range(30):
+              s, d = api("GET", f"/v1/builds?filter[app]={APP}&limit=1&sort=-uploadedDate")
+              if isinstance(d, dict) and d.get("data"):
+                  b = d["data"][0]; st = b["attributes"]["processingState"]
+                  print("build", b["attributes"]["version"], st)
+                  if st == "VALID": bid = b["id"]; break
+                  if st in ("FAILED", "INVALID"): break
+              time.sleep(30)
+          if bid:
+              for g in GROUPS:
+                  s, _ = api("POST", f"/v1/betaGroups/{g}/relationships/builds", {"data": [{"type": "builds", "id": bid}]})
+                  print("assign", g, s)
+              print("✅ iç teste otomatik atandı")
+          else:
+              print("build VALID olmadı, atama atlandı")
+          PY
