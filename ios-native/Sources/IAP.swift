@@ -70,8 +70,9 @@ import StoreKit
     }
 
     private func setPurchased(_ v: Bool) {
-        purchased = v
-        UserDefaults.standard.set(v, forKey: "nd_premium")
+        let gift = UserDefaults.standard.bool(forKey: "nd_gift")   // hediye kodu kalıcı
+        purchased = v || gift
+        UserDefaults.standard.set(v || gift, forKey: "nd_premium")
     }
 
     private func listenForTransactions() -> Task<Void, Never> {

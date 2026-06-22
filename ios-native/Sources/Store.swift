@@ -12,7 +12,7 @@ struct Position: Codable, Identifiable, Hashable {
     var device: String; var lat: Double; var lon: Double; var speedKmh: Double; var online: Bool
     var id: String { device }
 }
-struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar }
+struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
 struct Friend: Codable, Identifiable, Hashable {
     var username: String; var name: String?; var avatar: Avatar?; var online: Bool?
     var id: String { username }
@@ -185,6 +185,16 @@ struct Convo: Codable, Identifiable, Hashable {
         guard let d = try? await req("/api/rides/generate", method: "POST", body: body),
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
+    }
+    // Hediye kodu → premium (sunucu doğrular)
+    @discardableResult
+    func redeem(_ code: String) async -> Bool {
+        guard let d = try? await req("/api/redeem", method: "POST", body: ["code": code]),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              (o["ok"] as? Bool) == true else { return false }
+        UserDefaults.standard.set(true, forKey: "nd_gift")
+        UserDefaults.standard.set(true, forKey: "nd_premium")
+        return true
     }
     // Günlük özet ayarları (premium)
     func summarySettings() async -> (enabled: Bool, hour: Int) {

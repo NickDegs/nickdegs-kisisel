@@ -226,6 +226,7 @@ struct ProfileView: View {
         }
         .task {
             prof = await store.profile(); friends = await store.friends(); stats = await store.stats()
+            if prof?.premium == true { UserDefaults.standard.set(true, forKey: "nd_gift"); premium = true }
             let s = await store.summarySettings(); sumEnabled = s.enabled; sumHour = s.hour
             if AppEnv.demo {
                 try? await Task.sleep(for: .milliseconds(450))
@@ -386,9 +387,13 @@ struct AddFriendSheet: View {
 struct PaywallSheet: View {
     @Binding var premium: Bool
     @EnvironmentObject var iap: IAP
+    @EnvironmentObject var store: Store
     @Environment(\.dismiss) var dismiss
     @State private var failed = false
     @State private var triedLoad = false
+    @State private var code = ""
+    @State private var codeErr = false
+    @State private var redeeming = false
 
     struct Perk: Identifiable { let id = UUID(); let icon: String; let title: String; let sub: String }
     var perks: [Perk] {[
@@ -451,6 +456,32 @@ struct PaywallSheet: View {
                         Button(L("Satın alımları geri yükle","Restore purchases")) {
                             Task { await iap.restore(); premium = iap.purchased; if iap.purchased { dismiss() } }
                         }.font(.footnote).foregroundStyle(.secondary).padding(.top, 2)
+
+                        // Hediye kodu
+                        VStack(spacing: 8) {
+                            Label(L("Hediye kodun mu var?","Have a gift code?"), systemImage: "gift.fill")
+                                .font(.system(size: 14, weight: .medium)).foregroundStyle(Brand.gradient)
+                            HStack(spacing: 10) {
+                                TextField(L("KOD","CODE"), text: $code)
+                                    .textInputAutocapitalization(.characters).autocorrectionDisabled()
+                                    .multilineTextAlignment(.center)
+                                    .font(.system(size: 16, weight: .semibold, design: .monospaced))
+                                Button {
+                                    redeeming = true; codeErr = false
+                                    Task {
+                                        let ok = await store.redeem(code.trimmingCharacters(in: .whitespaces))
+                                        redeeming = false
+                                        if ok { premium = true; dismiss() } else { codeErr = true }
+                                    }
+                                } label: {
+                                    if redeeming { ProgressView() } else { Text(L("Kullan","Redeem")) }
+                                }.buttonStyle(.glassy).disabled(redeeming || code.count < 6)
+                            }
+                            if codeErr {
+                                Text(L("Kod geçersiz veya kullanılmış.","Invalid or already used code."))
+                                    .font(.caption2).foregroundStyle(.red)
+                            }
+                        }.padding(14).glassPanel(16).padding(.top, 8)
                         if let e = iap.lastError {
                             Text(e).font(.footnote).foregroundStyle(.red)
                                 .multilineTextAlignment(.center).padding(.horizontal, 8)
