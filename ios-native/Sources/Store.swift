@@ -186,6 +186,26 @@ struct Convo: Codable, Identifiable, Hashable {
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
     }
+    // Günlük özet ayarları (premium)
+    func summarySettings() async -> (enabled: Bool, hour: Int) {
+        guard let d = try? await req("/api/summary/settings"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return (true, 21) }
+        return ((o["enabled"] as? Bool) ?? true, (o["hour"] as? Int) ?? 21)
+    }
+    @discardableResult
+    func setSummarySettings(enabled: Bool, hour: Int) async -> Bool {
+        guard let d = try? await req("/api/summary/settings", method: "PUT",
+                                     body: ["enabled": enabled, "hour": hour]),
+              let _ = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
+        return true
+    }
+    // Şimdiye kadarki günü hemen özetle (on-demand)
+    @discardableResult
+    func summaryNow(premium: Bool) async -> Bool {
+        guard let d = try? await req("/api/summary/now", method: "POST", body: ["premium": premium]),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
+        return (o["ok"] as? Bool) ?? false
+    }
     func videoURL(_ id: String) -> URL { URL(string: API + "/api/rides/\(id)/video")! }
     var authHeader: [String:String] { ["Authorization": "Bearer " + token] }
 }

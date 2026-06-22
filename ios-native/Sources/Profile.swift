@@ -38,6 +38,9 @@ struct ProfileView: View {
     @State private var showDelete = false
     @State private var showRename = false
     @State private var newName = ""
+    @State private var sumEnabled = true
+    @State private var sumHour = 21
+    @State private var sumQueued = false
 
     var body: some View {
         NavigationStack {
@@ -117,6 +120,58 @@ struct ProfileView: View {
                             }
                         }.padding(14).glassPanel(18).tint(Brand.accent)
 
+                        section(L("Günlük özet","Daily summary"))
+                        VStack(spacing: 0) {
+                            Toggle(isOn: Binding(
+                                get: { sumEnabled && premium },
+                                set: { on in
+                                    if premium {
+                                        sumEnabled = on
+                                        Task { await store.setSummarySettings(enabled: on, hour: sumHour) }
+                                    } else { showPaywall = true }
+                                })) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack(spacing: 6) {
+                                        Label(L("Günlük özet","Daily summary"), systemImage: "doc.text.magnifyingglass")
+                                            .font(.system(size: 16, weight: .medium))
+                                        if !premium { Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary) }
+                                    }
+                                    Text(L("Her gün seçtiğin saatte günün detaylı aktivite özeti.",
+                                           "A detailed summary of your day at the time you choose."))
+                                        .font(.caption2).foregroundStyle(.secondary)
+                                }
+                            }.tint(Brand.accent)
+
+                            if premium && sumEnabled {
+                                Divider().padding(.vertical, 10)
+                                HStack {
+                                    Label(L("Özet saati","Summary time"), systemImage: "clock")
+                                        .font(.system(size: 15))
+                                    Spacer()
+                                    Picker("", selection: Binding(
+                                        get: { sumHour },
+                                        set: { h in sumHour = h; Task { await store.setSummarySettings(enabled: sumEnabled, hour: h) } })) {
+                                        ForEach(0..<24, id: \.self) { h in Text(String(format: "%02d:00", h)).tag(h) }
+                                    }.pickerStyle(.menu).tint(Brand.accent)
+                                }
+                            }
+                        }.padding(14).glassPanel(18)
+                        .onTapGesture { if !premium { showPaywall = true } }
+
+                        Button {
+                            if premium {
+                                Task { if await store.summaryNow(premium: true) { sumQueued = true } }
+                            } else { showPaywall = true }
+                        } label: {
+                            Label(sumQueued ? L("Özet hazırlanıyor…","Preparing summary…")
+                                            : L("Şimdi özet çıkar","Summarize now"),
+                                  systemImage: sumQueued ? "checkmark.circle.fill" : "sparkles")
+                                .frame(maxWidth: .infinity)
+                        }.buttonStyle(.glassy).tint(Brand.accent).disabled(sumQueued)
+                        Text(L("Şimdiye kadarki günü detaylıca özetler; hazır olunca bildirim gelir.",
+                               "Summarizes your day so far; you'll get a notification when it's ready."))
+                            .font(.caption2).foregroundStyle(.secondary).padding(.top, 2)
+
                         section(L("Görünüm","Appearance"))
                         Picker("", selection: $scheme) {
                             Text(L("Açık","Light")).tag("light")
@@ -144,6 +199,7 @@ struct ProfileView: View {
         }
         .task {
             prof = await store.profile(); friends = await store.friends(); stats = await store.stats()
+            let s = await store.summarySettings(); sumEnabled = s.enabled; sumHour = s.hour
             if AppEnv.demo {
                 try? await Task.sleep(for: .milliseconds(450))
                 if AppEnv.screen == "paywall" { showPaywall = true }
