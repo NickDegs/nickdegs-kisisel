@@ -68,7 +68,7 @@ jobs:
       - name: Archive
         working-directory: ios-native
         run: |
-          BUILD_NUMBER=$(date -u +%Y%m%d%H%M)
+          BUILD_NUMBER=$(date -u +%Y%m%d%H%M%S)
           xcodebuild archive \
             -project MoveLog.xcodeproj \
             -scheme MoveLog \
