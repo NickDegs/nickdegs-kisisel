@@ -15,6 +15,7 @@ struct MapTab: View {
     @AppStorage("nd_premium") private var premium = false
     @AppStorage("nd_map_satellite") private var satellite = false
     @State private var showPaywall = false
+    @AppStorage("nd_people_grid") private var peopleGrid = false
     @State private var cam: MapCameraPosition = .userLocation(fallback: .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 41.0, longitude: 29.0),
         span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4))))
@@ -26,8 +27,12 @@ struct MapTab: View {
                     UserAnnotation()
                     ForEach(positions) { p in
                         Annotation(p.device, coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)) {
-                            Image(systemName: "mappin.circle.fill").font(.title)
-                                .foregroundStyle(p.online ? .green : Brand.accent)
+                            AvatarView(name: p.device, size: 42)
+                                .overlay(Circle().strokeBorder(.white, lineWidth: 3))
+                                .overlay(alignment: .bottom) {
+                                    Triangle().fill(.white).frame(width: 16, height: 10).offset(y: 9)
+                                }
+                                .shadow(color: .black.opacity(0.3), radius: 4, y: 2)
                         }
                     }
                 }
@@ -60,17 +65,29 @@ struct MapTab: View {
 
                 VStack(spacing: 10) {
                     if !positions.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 10) {
-                                ForEach(positions) { p in
-                                    HStack(spacing: 8) {
-                                        Circle().fill(p.online ? .green : .gray).frame(width: 9, height: 9)
-                                        Text("\(p.device) · \(String(format: "%.0f", p.speedKmh)) \(L("km/s","km/h"))")
-                                            .font(.system(size: 13, weight: .medium))
-                                    }.padding(.horizontal, 14).padding(.vertical, 10).glassCapsule()
-                                }
-                            }.padding(.horizontal, 16)
+                        // Görünüm seçeneği (liste / ızgara)
+                        Picker("", selection: $peopleGrid) {
+                            Image(systemName: "list.bullet").tag(false)
+                            Image(systemName: "square.grid.2x2").tag(true)
                         }
+                        .pickerStyle(.segmented)
+                        .frame(width: 132)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 16)
+
+                        // Find My tarzı kişi listesi
+                        ScrollView(showsIndicators: false) {
+                            if peopleGrid {
+                                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                                    ForEach(positions) { p in personCard(p, compact: true) }
+                                }.padding(.horizontal, 16)
+                            } else {
+                                VStack(spacing: 10) {
+                                    ForEach(positions) { p in personCard(p, compact: false) }
+                                }.padding(.horizontal, 16)
+                            }
+                        }
+                        .frame(maxHeight: 260)
                     }
                     recordBar.padding(.horizontal, 16).padding(.bottom, 6)
                 }
@@ -151,8 +168,39 @@ struct MapTab: View {
             tracker.startRide(type: type, deviceId: t.id, url: t.url)
         }
     }
+
+    // Find My tarzı kişi kartı
+    @ViewBuilder func personCard(_ p: Position, compact: Bool) -> some View {
+        HStack(spacing: 12) {
+            AvatarView(name: p.device, size: compact ? 38 : 46)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(p.device).font(.system(size: compact ? 14 : 16, weight: .semibold)).lineLimit(1)
+                HStack(spacing: 6) {
+                    Circle().fill(p.online ? .green : .gray).frame(width: 8, height: 8)
+                    Text("\(String(format: "%.0f", p.speedKmh)) \(L("km/s","km/h"))")
+                        .font(.system(size: compact ? 11 : 13)).foregroundStyle(.secondary)
+                }
+            }
+            if !compact { Spacer() }
+        }
+        .padding(compact ? 11 : 13)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassPanel(18)
+    }
 }
 
 struct GenRange: Identifiable {
     let id = UUID(); let from: Double; let to: Double; let type: String
+}
+
+// Pin ucu için basit üçgen
+struct Triangle: Shape {
+    func path(in r: CGRect) -> Path {
+        var p = Path()
+        p.move(to: CGPoint(x: r.midX, y: r.maxY))
+        p.addLine(to: CGPoint(x: r.minX, y: r.minY))
+        p.addLine(to: CGPoint(x: r.maxX, y: r.minY))
+        p.closeSubpath()
+        return p
+    }
 }
