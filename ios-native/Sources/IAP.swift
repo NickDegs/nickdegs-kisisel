@@ -1,6 +1,9 @@
 import StoreKit
 
-// Gerçek StoreKit 2 — premium font kilidi (aylık / yıllık otomatik yenilenen abonelik)
+// Gerçek StoreKit 2 — premium abonelik (aylık / yıllık otomatik yenilenen)
+// iPad / "Designed for iPhone" race düzeltmesi: satın alma sonrası premium'u
+// doğrulanmış transaction'dan DİREKT açarız; currentEntitlements cache'ini
+// (iPad'de geç dolar) BEKLEMEYİZ. refresh() yalnızca ek güvence / restore.
 @MainActor final class IAP: ObservableObject {
     static let monthlyID = "com.nickdegs.kisisel.premium.monthly"
     static let yearlyID = "com.nickdegs.kisisel.premium.yearly"
@@ -16,9 +19,26 @@ import StoreKit
 
     init() {
         updates = listenForTransactions()
-        Task { await load(); await refresh() }
+        Task {
+            await load()
+            // Uçuş sonrası / Ask to Buy / Family Sharing: bitmemiş işlemleri yakala
+            for await result in Transaction.unfinished {
+                if case .verified(let t) = result {
+                    apply(t)
+                    await t.finish()
+                }
+            }
+            await refresh()
+        }
     }
     deinit { updates?.cancel() }
+
+    // Doğrulanmış transaction'dan premium'u HEMEN aç (cache bekleme)
+    private func apply(_ t: Transaction) {
+        if Self.ids.contains(t.productID), t.revocationDate == nil {
+            setPurchased(true)
+        }
+    }
 
     func load() async {
         do {
@@ -33,11 +53,13 @@ import StoreKit
         }
     }
 
+    // Sahiplik/expiry tespiti (launch + restore). Yalnızca YÜKSELTİR ya da
+    // gerçekten hiç entitlement yoksa düşürür; taze satın almayı ezmez.
     func refresh() async {
         var owned = false
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, Self.ids.contains(t.productID), t.revocationDate == nil {
-                owned = true   // currentEntitlements yalnızca aktif (süresi geçmemiş) abonelikleri döner
+                owned = true
             }
         }
         setPurchased(owned)
@@ -49,7 +71,11 @@ import StoreKit
         do {
             switch try await product.purchase() {
             case .success(let v):
-                if case .verified(let t) = v { await t.finish(); setPurchased(true); return true }
+                if case .verified(let t) = v {
+                    apply(t)              // ← premium'u HEMEN aç (cache'i bekleme)
+                    await t.finish()
+                    return purchased
+                }
                 lastError = "Satın alma doğrulanamadı."; return false
             case .pending:
                 lastError = "Onay bekleniyor (Aile Onayı / ödeme yöntemi)."; return false
@@ -76,11 +102,11 @@ import StoreKit
     }
 
     private func listenForTransactions() -> Task<Void, Never> {
-        Task.detached { [weak self] in
+        Task { [weak self] in
             for await update in Transaction.updates {
                 if case .verified(let t) = update {
+                    self?.apply(t)        // ← cache'e güvenme, direkt aç
                     await t.finish()
-                    await self?.refresh()
                 }
             }
         }
