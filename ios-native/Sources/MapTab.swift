@@ -12,6 +12,9 @@ struct MapTab: View {
     @State private var showTypePicker = false
     @State private var genRange: GenRange?
     @State private var photoItem: PhotosPickerItem?
+    @AppStorage("nd_premium") private var premium = false
+    @AppStorage("nd_map_satellite") private var satellite = false
+    @State private var showPaywall = false
     @State private var cam: MapCameraPosition = .userLocation(fallback: .region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 41.0, longitude: 29.0),
         span: MKCoordinateSpan(latitudeDelta: 0.4, longitudeDelta: 0.4))))
@@ -28,8 +31,32 @@ struct MapTab: View {
                         }
                     }
                 }
+                .mapStyle(satellite ? .hybrid(elevation: .realistic) : .standard)
                 .mapControls { MapUserLocationButton(); MapCompass() }
                 .ignoresSafeArea(edges: .top)
+
+                // Uydu / standart geçişi (premium)
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button {
+                            if premium { withAnimation { satellite.toggle() } }
+                            else { showPaywall = true }
+                        } label: {
+                            Image(systemName: satellite ? "map.fill" : "globe.americas.fill")
+                                .font(.system(size: 17, weight: .semibold))
+                                .frame(width: 44, height: 44)
+                                .glassPanel(22)
+                                .overlay(alignment: .topTrailing) {
+                                    if !premium {
+                                        Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold))
+                                            .padding(4).background(.ultraThinMaterial, in: Circle()).offset(x: 4, y: -4)
+                                    }
+                                }
+                        }
+                    }.padding(.horizontal, 16).padding(.top, 4)
+                    Spacer()
+                }
 
                 VStack(spacing: 10) {
                     if !positions.isEmpty {
@@ -69,6 +96,8 @@ struct MapTab: View {
         .sheet(item: $genRange) { r in
             GenerateSheet(from: r.from, to: r.to, type: r.type)
         }
+        .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
+        .onChange(of: premium) { _, v in if !v { satellite = false } }
     }
 
     @ViewBuilder var recordBar: some View {

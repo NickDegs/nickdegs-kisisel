@@ -411,6 +411,8 @@ struct PaywallSheet: View {
               sub: L("Gezi bitince otomatik üretilir","Auto-made after each trip")),
         .init(icon: "doc.text.magnifyingglass", title: L("Günlük özet","Daily summary"),
               sub: L("Saat ayarı + anında özet","Custom time + on-demand")),
+        .init(icon: "globe.americas.fill", title: L("Uydu haritası","Satellite map"),
+              sub: L("Sevdiklerini uydu görünümünde izle","See your people on satellite view")),
     ]}
 
     var body: some View {

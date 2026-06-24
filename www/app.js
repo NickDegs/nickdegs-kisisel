@@ -1,7 +1,7 @@
 // Move Log — frontend (çerçeve-bağımsız) · çok dilli · resmi tasarım dili
 const API = "https://kisisel-api.nickdegs.com";
 let TOKEN = localStorage.getItem("nd_token") || "";
-let map, markers = {};
+let map, markers = {}, stdLayer, satLayer;
 
 const $ = (s) => document.querySelector(s);
 const show = (id) => { document.querySelectorAll(".screen").forEach(s => s.classList.remove("active")); $("#" + id).classList.add("active"); };
@@ -398,8 +398,14 @@ function copyInvite() { const i = $("#inviteLink"); i.select(); try { navigator.
 
 // ---- gps ----
 async function loadGps() {
-  if (!map) { map = L.map("map", { zoomControl: false }).setView([40.978, 37.924], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(map); }
+  if (!map) {
+    map = L.map("map", { zoomControl: false }).setView([40.978, 37.924], 12);
+    stdLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 });
+    satLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", { maxZoom: 19, attribution: "Esri" });
+    const wantSat = localStorage.getItem("nd_map_satellite") === "1" && isPremium();
+    (wantSat ? satLayer : stdLayer).addTo(map);
+    addSatToggle();
+  }
   setTimeout(() => map.invalidateSize(), 100);
   try {
     const { positions } = await api("/api/gps/live");
@@ -407,6 +413,36 @@ async function loadGps() {
     positions.forEach(p => { if (markers[p.device]) markers[p.device].setLatLng([p.lat, p.lon]); else markers[p.device] = L.marker([p.lat, p.lon]).addTo(map).bindPopup(p.device); });
     if (positions[0]) map.setView([positions[0].lat, positions[0].lon], 14);
   } catch (e) { $("#gpsInfo").innerHTML = `<div class='empty'>${T.noLoc}</div>`; }
+}
+
+// Uydu / standart harita geçişi (premium)
+function addSatToggle() {
+  const Ctl = L.Control.extend({
+    options: { position: "topright" },
+    onAdd() {
+      const b = L.DomUtil.create("button", "satbtn");
+      b.type = "button";
+      b.style.cssText = "width:42px;height:42px;border:none;border-radius:12px;background:rgba(10,16,40,.78);" +
+        "backdrop-filter:blur(10px);color:#eaf0ff;font-size:18px;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.35)";
+      const render = () => {
+        const sat = map.hasLayer(satLayer);
+        b.textContent = (sat ? "🗺️" : "🛰️") + (isPremium() ? "" : "🔒");
+      };
+      render();
+      L.DomEvent.on(b, "click", (e) => { L.DomEvent.stop(e); toggleSat(render); });
+      return b;
+    }
+  });
+  map.addControl(new Ctl());
+}
+function toggleSat(render) {
+  if (!isPremium()) { openPaywall(); return; }
+  if (map.hasLayer(satLayer)) {
+    map.removeLayer(satLayer); stdLayer.addTo(map); localStorage.setItem("nd_map_satellite", "0");
+  } else {
+    map.removeLayer(stdLayer); satLayer.addTo(map); localStorage.setItem("nd_map_satellite", "1");
+  }
+  if (render) render();
 }
 
 // ---- chat (Telegram-benzeri, full liquid glass + yumuşak animasyon) ----
