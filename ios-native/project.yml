@@ -29,8 +29,8 @@ targets:
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Profil ve sohbet fotoğraflarını seçmek için."
         INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "Rota videolarını galerine kaydetmek için."
         INFOPLIST_KEY_NSCameraUsageDescription: "Fotoğraf çekip paylaşmak için."
-        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Canlı konumu haritada göstermek için."
-        INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: "Rota kaydı açıkken gezilerin arka planda kaydedilip otomatik rota videosu olur."
+        INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Move Log; yürüyüş, bisiklet, motosiklet ve koşu rotalarını haritada kaydetmek, mesafe ve hızını hesaplamak ve izin verdiğin aile/arkadaşlarına canlı konumunu göstermek için konumunu kullanır. Örneğin bisiklet rotanı çizer ve eklediğin kişilerin nerede olduğunu görmesini sağlar."
+        INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription: "Move Log, yalnızca bir gezi kaydı açıkken konumunu arka planda kullanır; böylece ekran kapalıyken bile tüm rotan kaydedilir ve otomatik rota videona dönüştürülür. Örneğin motosiklet sürüşünde uygulama arka plandayken rotan kaydedilerek rota filmin oluşturulur. Arka plan konumu yalnızca aktif kayıt ve senin açtığın canlı konum paylaşımı sırasında kullanılır."
         INFOPLIST_KEY_UIBackgroundModes: location
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
