@@ -37,29 +37,43 @@ struct MapTab: View {
                     }
                 }
                 .mapStyle(satellite ? .hybrid(elevation: .realistic) : .standard)
-                .mapControls { MapUserLocationButton(); MapCompass() }
                 .ignoresSafeArea(edges: .top)
 
-                // Uydu / standart geçişi (premium)
+                // Sağ üst kontroller (güvenli alana sığar — status bar'a taşmaz)
                 VStack {
                     HStack {
                         Spacer()
-                        Button {
-                            if premium { withAnimation { satellite.toggle() } }
-                            else { showPaywall = true }
-                        } label: {
-                            Image(systemName: satellite ? "map.fill" : "globe.americas.fill")
-                                .font(.system(size: 17, weight: .semibold))
-                                .frame(width: 44, height: 44)
-                                .glassPanel(22)
-                                .overlay(alignment: .topTrailing) {
-                                    if !premium {
-                                        Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold))
-                                            .padding(4).background(.ultraThinMaterial, in: Circle()).offset(x: 4, y: -4)
+                        VStack(spacing: 10) {
+                            // Uydu / standart geçişi (premium)
+                            Button {
+                                if premium { withAnimation { satellite.toggle() } }
+                                else { showPaywall = true }
+                            } label: {
+                                Image(systemName: satellite ? "map.fill" : "globe.americas.fill")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                                    .glassPanel(22)
+                                    .overlay(alignment: .topTrailing) {
+                                        if !premium {
+                                            Image(systemName: "lock.fill").font(.system(size: 9, weight: .bold))
+                                                .padding(4).background(.ultraThinMaterial, in: Circle()).offset(x: 4, y: -4)
+                                        }
                                     }
+                            }
+                            // Konuma geri dön
+                            Button {
+                                if let c = loc.coordinate {
+                                    withAnimation { cam = .region(MKCoordinateRegion(center: c,
+                                        span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02))) }
                                 }
+                            } label: {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .frame(width: 44, height: 44)
+                                    .glassPanel(22)
+                            }
                         }
-                    }.padding(.horizontal, 16).padding(.top, 4)
+                    }.padding(.horizontal, 16).padding(.top, 8)
                     Spacer()
                 }
 
