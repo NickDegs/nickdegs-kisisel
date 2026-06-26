@@ -6,7 +6,7 @@ struct MoveLogApp: App {
     @StateObject private var store = Store()
     @StateObject private var iap = IAP()
     @StateObject private var cloud = CloudSync()
-    @StateObject private var tracker = Tracker()
+    @StateObject private var tracker = Tracker.shared
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     var design: Font.Design {
@@ -30,6 +30,7 @@ struct MoveLogApp: App {
 
 struct RootView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var tracker: Tracker
     @State private var sel = RootView.initialTab()
     @State private var ann: Announcement?
     @AppStorage("nd_ann_seen") private var annSeen = 0
@@ -54,6 +55,9 @@ struct RootView: View {
         .task {
             if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" }
             await store.registerPush()
+            // Oto-takip açıksa her açılışta GPS göndermeyi yeniden başlat (relaunch'ta sessizce
+            // durmasın diye). start() idempotent: zaten çalışıyorsa zarar vermez.
+            if tracker.active, let t = await store.trackerInfo() { tracker.start(deviceId: t.id, url: t.url) }
             if let a = await store.announcement(), a.ts > annSeen { withAnimation { ann = a } }
         }
         .onReceive(NotificationCenter.default.publisher(for: .ndApns)) { _ in
