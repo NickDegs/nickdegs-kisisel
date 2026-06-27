@@ -54,6 +54,7 @@ struct RootView: View {
         }
         .task {
             if store.me.isEmpty { let p = await store.profile(); store.me = p?.username ?? "" }
+            await store.syncPremium()                 // premium'u açılışta cihaza yansıt (kilitler kalksın)
             await store.registerPush()
             // Oto-takip açıksa her açılışta GPS göndermeyi yeniden başlat (relaunch'ta sessizce
             // durmasın diye). start() idempotent: zaten çalışıyorsa zarar vermez.

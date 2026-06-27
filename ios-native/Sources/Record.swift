@@ -136,7 +136,7 @@ struct GenerateSheet: View {
         }
         .presentationDetents([.large])
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
-        .task { stock = await store.musicList() }
+        .task { await store.syncPremium(); stock = await store.musicList() }
         .fileImporter(isPresented: $showAudioPicker, allowedContentTypes: [.audio]) { res in
             if case .success(let url) = res {
                 Task {

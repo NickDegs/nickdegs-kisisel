@@ -113,6 +113,12 @@ struct Convo: Codable, Identifiable, Hashable {
     func profile() async -> Profile? {
         if AppEnv.demo { return Profile(username: "me", name: Demo.user, avatar: Avatar()) }
         return try? dec().decode(Profile.self, from: await req("/api/profile")) }
+    // Sunucu-taraflı premium'u cihaza senkronla (yalnızca Profil değil her yerden tetiklenir).
+    func syncPremium() async {
+        guard let p = await profile(), p.premium else { return }
+        UserDefaults.standard.set(true, forKey: "nd_gift")     // hediye/sunucu premium kalıcı
+        UserDefaults.standard.set(true, forKey: "nd_premium")
+    }
     func friends() async -> [Friend] {
         if AppEnv.demo { return DemoData.friends }
         return (try? dec().decode([String:[Friend]].self, from: await req("/api/friends"))["friends"]) ?? []
