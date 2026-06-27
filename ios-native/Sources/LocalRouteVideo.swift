@@ -1,0 +1,184 @@
+import MapKit
+import AVFoundation
+import UIKit
+import CoreLocation
+
+// CİHAZDA (lokal) rota videosu render — sunucu render etmez, telefon kendi GPU'suyla çizer.
+// Apple Maps uydu (hybridFlyover) + yumuşak kamera takibi + ilerleyen rota + hız/mesafe bindirme -> MP4.
+enum LocalRouteVideo {
+    struct Pt { let coord: CLLocationCoordinate2D; let spd: Double }
+
+    static func render(points raw: [Pt], aspect: String,
+                       onProgress: @escaping (Double) -> Void) async -> URL? {
+        guard raw.count >= 3 else { return nil }
+        let vertical = (aspect == "9:16")
+        let size = CGSize(width: vertical ? 720 : 1280, height: vertical ? 1280 : 720)
+        let fps: Int32 = 30
+        let pts = densify(raw)
+        let km = routeKm(pts)
+        let dur = max(8.0, min(35.0, km * 2.6))
+        let frames = max(60, Int(dur * Double(fps)))
+
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("route_\(Int(Date().timeIntervalSince1970)).mp4")
+        try? FileManager.default.removeItem(at: url)
+        guard let writer = try? AVAssetWriter(outputURL: url, fileType: .mp4) else { return nil }
+        let vset: [String: Any] = [AVVideoCodecKey: AVVideoCodecType.h264,
+                                   AVVideoWidthKey: size.width, AVVideoHeightKey: size.height]
+        let input = AVAssetWriterInput(mediaType: .video, outputSettings: vset)
+        input.expectsMediaDataInRealTime = false
+        let attrs: [String: Any] = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+                                    kCVPixelBufferWidthKey as String: Int(size.width),
+                                    kCVPixelBufferHeightKey as String: Int(size.height)]
+        let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: attrs)
+        guard writer.canAdd(input) else { return nil }
+        writer.add(input)
+        guard writer.startWriting() else { return nil }
+        writer.startSession(atSourceTime: .zero)
+
+        var camLat = pts[0].coord.latitude, camLon = pts[0].coord.longitude, camHead = 0.0
+        var totM = 0.0
+        for f in 0..<frames {
+            let prog = Double(f) / Double(max(1, frames - 1))
+            let idx = min(pts.count - 1, Int(prog * Double(pts.count - 1)))
+            let c = pts[idx].coord
+            let ahead = pts[min(pts.count - 1, idx + max(1, pts.count / 40))].coord
+            let tHead = bearing(c, ahead)
+            camLat += (c.latitude - camLat) * 0.16
+            camLon += (c.longitude - camLon) * 0.16
+            camHead += angDiff(tHead, camHead) * 0.08
+            let head = (camHead.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
+
+            let opt = MKMapSnapshotter.Options()
+            opt.camera = MKMapCamera(lookingAtCenter: CLLocationCoordinate2D(latitude: camLat, longitude: camLon),
+                                     fromDistance: 720, pitch: 55, heading: head)
+            opt.size = size
+            opt.mapType = .hybridFlyover
+            opt.pointOfInterestFilter = .excludingAll
+            guard let snap = await snapshot(opt) else { continue }
+
+            if idx > 0 { totM = cumKm(pts, upTo: idx) * 1000 }
+            let img = compose(snap: snap, pts: pts, idx: idx, size: size,
+                              spd: pts[idx].spd, cumKm: totM / 1000)
+            if let pb = pixelBuffer(from: img, size: size, pool: adaptor.pixelBufferPool) {
+                while !input.isReadyForMoreMediaData { try? await Task.sleep(nanoseconds: 8_000_000) }
+                adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(f), timescale: fps))
+            }
+            onProgress(Double(f) / Double(frames))
+        }
+        input.markAsFinished()
+        await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
+            writer.finishWriting { c.resume() }
+        }
+        return writer.status == .completed ? url : nil
+    }
+
+    // MARK: - snapshot (async sarmalayıcı)
+    private static func snapshot(_ opt: MKMapSnapshotter.Options) async -> MKMapSnapshotter.Snapshot? {
+        await withCheckedContinuation { cont in
+            MKMapSnapshotter(options: opt).start(with: .global(qos: .userInitiated)) { snap, _ in
+                cont.resume(returning: snap)
+            }
+        }
+    }
+
+    // MARK: - kareyi bindirme ile çiz
+    private static func compose(snap: MKMapSnapshotter.Snapshot, pts: [Pt], idx: Int,
+                                size: CGSize, spd: Double, cumKm: Double) -> UIImage {
+        let r = UIGraphicsImageRenderer(size: size)
+        return r.image { ctx in
+            snap.image.draw(in: CGRect(origin: .zero, size: size))
+            let g = ctx.cgContext
+            // ilerleyen rota çizgisi (idx'e kadar)
+            g.setLineCap(.round); g.setLineJoin(.round)
+            let path = UIBezierPath()
+            var started = false
+            for i in 0...idx {
+                let p = snap.point(for: pts[i].coord)
+                if !started { path.move(to: p); started = true } else { path.addLine(to: p) }
+            }
+            UIColor.black.withAlphaComponent(0.55).setStroke(); path.lineWidth = 9; path.stroke()
+            UIColor(red: 0, green: 0.9, blue: 1, alpha: 1).setStroke(); path.lineWidth = 5; path.stroke()
+            // konum işareti
+            let mp = snap.point(for: pts[idx].coord)
+            let dot = CGRect(x: mp.x - 13, y: mp.y - 13, width: 26, height: 26)
+            g.setShadow(offset: .zero, blur: 6, color: UIColor.black.withAlphaComponent(0.6).cgColor)
+            UIColor.white.setFill(); g.fillEllipse(in: dot)
+            g.setShadow(offset: .zero, blur: 0, color: nil)
+            UIColor(red: 1, green: 0.23, blue: 0.19, alpha: 1).setFill()
+            g.fillEllipse(in: dot.insetBy(dx: 6, dy: 6))
+            // stat şeridi
+            let bar = "⚡ \(Int(spd)) km/s   ▸ \(String(format: "%.1f", cumKm)) km"
+            let attr: [NSAttributedString.Key: Any] = [
+                .font: UIFont.systemFont(ofSize: size.width * 0.030, weight: .bold),
+                .foregroundColor: UIColor.white,
+                .strokeColor: UIColor.black, .strokeWidth: -3.0]
+            bar.draw(at: CGPoint(x: 28, y: size.height - size.width * 0.030 - 34), withAttributes: attr)
+        }
+    }
+
+    // MARK: - UIImage -> CVPixelBuffer
+    private static func pixelBuffer(from img: UIImage, size: CGSize, pool: CVPixelBufferPool?) -> CVPixelBuffer? {
+        var pb: CVPixelBuffer?
+        if let pool { CVPixelBufferPoolCreatePixelBuffer(nil, pool, &pb) }
+        if pb == nil {
+            let a: [String: Any] = [kCVPixelBufferCGImageCompatibilityKey as String: true,
+                                    kCVPixelBufferCGBitmapContextCompatibilityKey as String: true]
+            CVPixelBufferCreate(nil, Int(size.width), Int(size.height), kCVPixelFormatType_32ARGB, a as CFDictionary, &pb)
+        }
+        guard let buf = pb, let cg = img.cgImage else { return nil }
+        CVPixelBufferLockBaseAddress(buf, [])
+        defer { CVPixelBufferUnlockBaseAddress(buf, []) }
+        guard let ctx = CGContext(data: CVPixelBufferGetBaseAddress(buf),
+                                  width: Int(size.width), height: Int(size.height), bitsPerComponent: 8,
+                                  bytesPerRow: CVPixelBufferGetBytesPerRow(buf),
+                                  space: CGColorSpaceCreateDeviceRGB(),
+                                  bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue) else { return nil }
+        ctx.draw(cg, in: CGRect(origin: .zero, size: size))
+        return buf
+    }
+
+    // MARK: - yardımcılar
+    private static func densify(_ p: [Pt]) -> [Pt] {
+        var out: [Pt] = []
+        for i in 0..<p.count {
+            out.append(p[i])
+            if i < p.count - 1 {
+                let a = p[i].coord, b = p[i + 1].coord
+                let d = CLLocation(latitude: a.latitude, longitude: a.longitude)
+                    .distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+                let n = min(8, Int(d / 25))
+                if n > 1 {
+                    for k in 1..<n {
+                        let t = Double(k) / Double(n)
+                        out.append(Pt(coord: CLLocationCoordinate2D(latitude: a.latitude + (b.latitude - a.latitude) * t,
+                                                                    longitude: a.longitude + (b.longitude - a.longitude) * t),
+                                      spd: p[i].spd + (p[i + 1].spd - p[i].spd) * t))
+                    }
+                }
+            }
+        }
+        return out
+    }
+    private static func routeKm(_ p: [Pt]) -> Double { cumKm(p, upTo: p.count - 1) }
+    private static func cumKm(_ p: [Pt], upTo idx: Int) -> Double {
+        var m = 0.0
+        for i in 1...max(1, idx) where i < p.count {
+            m += CLLocation(latitude: p[i - 1].coord.latitude, longitude: p[i - 1].coord.longitude)
+                .distance(from: CLLocation(latitude: p[i].coord.latitude, longitude: p[i].coord.longitude))
+        }
+        return m / 1000
+    }
+    private static func bearing(_ a: CLLocationCoordinate2D, _ b: CLLocationCoordinate2D) -> Double {
+        let la1 = a.latitude * .pi / 180, la2 = b.latitude * .pi / 180
+        let dl = (b.longitude - a.longitude) * .pi / 180
+        let y = sin(dl) * cos(la2)
+        let x = cos(la1) * sin(la2) - sin(la1) * cos(la2) * cos(dl)
+        return (atan2(y, x) * 180 / .pi + 360).truncatingRemainder(dividingBy: 360)
+    }
+    private static func angDiff(_ t: Double, _ c: Double) -> Double {
+        var d = (t - c).truncatingRemainder(dividingBy: 360)
+        if d > 180 { d -= 360 }; if d < -180 { d += 360 }
+        return d
+    }
+}
