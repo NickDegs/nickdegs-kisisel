@@ -98,13 +98,15 @@ struct GenerateSheet: View {
                     }.buttonStyle(.plain).glassPanel(14).tint(.primary)
 
                     if !premium {
-                        Text(L("Ücretsiz: 720p + filigran (Düz mod). Premium: 1080p, filigransız, Flyover/3B, müzik.",
-                               "Free: 720p + watermark (Flat). Premium: 1080p, no watermark, Flyover/3D, music."))
+                        Text(L("Rota kaydı ücretsiz. Videoya dökmek Premium: 1080p, filigransız, Flyover/3B, müzik.",
+                               "Route tracking is free. Turning it into a video is Premium: 1080p, no watermark, Flyover/3D, music."))
                             .font(.caption2).foregroundStyle(.secondary)
                     }
 
                     Button {
-                        let useMode = (premium ? mode : "flat")
+                        // Kural: algılama free, videoya dökme premium.
+                        if !premium { showPaywall = true; return }
+                        let useMode = mode
                         sending = true
                         Task {
                             let ok: Bool
