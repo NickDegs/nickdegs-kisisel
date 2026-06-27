@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 let API = "https://kisisel-api.nickdegs.com"
 
@@ -195,6 +196,17 @@ struct Convo: Codable, Identifiable, Hashable {
         guard let d = try? await req("/api/rides/generate", method: "POST", body: body),
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
+    }
+    // Cihazda lokal render için GPS izini çek
+    func track(from: Double, to: Double) async -> [LocalRouteVideo.Pt] {
+        guard let d = try? await req("/api/track?frm=\(from)&to=\(to)"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let arr = o["points"] as? [[String:Any]] else { return [] }
+        return arr.compactMap { p in
+            guard let lat = p["lat"] as? Double, let lon = p["lon"] as? Double else { return nil }
+            return LocalRouteVideo.Pt(coord: CLLocationCoordinate2D(latitude: lat, longitude: lon),
+                                      spd: (p["spd"] as? Double) ?? 0)
+        }
     }
     // Videoyu geçmişten sil (yumuşak-sil)
     @discardableResult
