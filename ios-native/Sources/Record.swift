@@ -1,6 +1,5 @@
 import SwiftUI
 import UniformTypeIdentifiers
-import Photos
 
 // Aktivite tipleri (her yerde ortak)
 let RIDE_TYPES: [(id: String, icon: String)] = [
@@ -29,8 +28,6 @@ struct GenerateSheet: View {
     @State private var speed: String            // "fast"=Kısa / "medium"=Orta / "slow"=Uzun
     @State private var sending = false
     @State private var done = false
-    @State private var renderPct: Double = 0
-    @State private var localErr = false
     @State private var showPaywall = false
     @State private var stock: [[String:String]] = []
     @State private var music = ""               // "", "stock:<id>", "upload"
@@ -109,33 +106,32 @@ struct GenerateSheet: View {
                     Button {
                         // Kural: algılama free, videoya dökme premium.
                         if !premium { showPaywall = true; return }
-                        sending = true; renderPct = 0; localErr = false
+                        let useMode = mode
+                        sending = true
                         Task {
-                            // CİHAZDA render: GPS izini çek -> telefonda video -> galeriye kaydet (sunucu render etmez)
-                            let track = await store.track(from: from, to: to)
-                            guard track.count >= 3 else { sending = false; localErr = true; return }
-                            let url = await LocalRouteVideo.render(points: track, aspect: aspect) { p in
-                                Task { @MainActor in renderPct = p }
+                            // SUNUCU render: arka planda üretilir, hazır olunca PUSH gelir (uygulama kapalı olabilir)
+                            let ok: Bool
+                            if let rideId {
+                                ok = await store.regenerateRide(rideId, type: type, mode: useMode,
+                                                                aspect: aspect, premium: premium,
+                                                                speed: speed, music: premium ? music : "")
+                            } else {
+                                ok = await store.generateRide(from: from, to: to, type: type,
+                                                              mode: useMode, aspect: aspect, premium: premium,
+                                                              speed: speed, music: premium ? music : "")
                             }
-                            var ok = false
-                            if let url { ok = await saveToPhotos(url) }
-                            sending = false; done = ok; localErr = !ok
+                            sending = false; done = ok
                             if ok { try? await Task.sleep(for: .seconds(1)); dismiss() }
                         }
                     } label: {
-                        if sending { HStack(spacing: 8) { ProgressView()
-                            Text(L("Cihazda oluşturuluyor %\(Int(renderPct*100))", "Rendering \(Int(renderPct*100))%")) } }
-                        else if done { Label(L("Galerine kaydedildi 🎬","Saved to Photos"), systemImage: "checkmark") }
+                        if sending { ProgressView() }
+                        else if done { Label(L("Sıraya alındı 🎬","Queued"), systemImage: "checkmark") }
                         else { Text(rideId == nil ? L("Video oluştur","Create video")
                                                   : L("Yeniden oluştur","Regenerate")) }
                     }.buttonStyle(.glassyProminent()).disabled(sending)
 
-                    if localErr {
-                        Text(L("Bu rotada konum verisi yok ya da kayıt başarısız.","No location data for this route or save failed."))
-                            .font(.caption2).foregroundStyle(.red)
-                    }
-                    Text(L("Video telefonunda oluşturulup galerine kaydedilir (sunucu kullanmaz).",
-                           "Rendered on your device and saved to Photos (no server)."))
+                    Text(L("Video arka planda hazırlanır; bittiğinde bildirim gelir ve Rotalar'da görünür. Uygulamayı kapatabilirsin.",
+                           "Prepared in the background; you'll get a notification when ready. You can close the app."))
                         .font(.caption2).foregroundStyle(.secondary)
                 }.padding(24)
             }
@@ -154,17 +150,6 @@ struct GenerateSheet: View {
                     }
                 }
             }
-        }
-    }
-
-    // Render edilen videoyu galeriye kaydet
-    func saveToPhotos(_ url: URL) async -> Bool {
-        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
-        guard status == .authorized || status == .limited else { return false }
-        return await withCheckedContinuation { cont in
-            PHPhotoLibrary.shared().performChanges {
-                PHAssetCreationRequest.creationRequestForAssetFromVideo(atFileURL: url)
-            } completionHandler: { ok, _ in cont.resume(returning: ok) }
         }
     }
 
