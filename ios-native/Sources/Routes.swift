@@ -90,9 +90,15 @@ struct RoutesView: View {
     }
 
     func play(_ r: Ride) {
-        let asset = AVURLAsset(url: store.videoURL(r.id), options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
-        let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
-        playerBox = PlayerBox(player: p)   // sheet(item:) ile player garanti hazır
+        Task {
+            let asset = AVURLAsset(url: store.videoURL(r.id),
+                                   options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+            _ = try? await asset.load(.isPlayable)          // ilk kare hazır olana kadar bekle (kara kare olmaz)
+            let item = AVPlayerItem(asset: asset)
+            let p = AVPlayer(playerItem: item)
+            p.automaticallyWaitsToMinimizeStalling = false
+            await MainActor.run { playerBox = PlayerBox(player: p) }   // sheet(item:) ile player garanti hazır
+        }
     }
 
     func save(_ r: Ride) {
