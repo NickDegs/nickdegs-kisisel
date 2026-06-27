@@ -16,7 +16,10 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
         super.init()
         mgr.delegate = self
         mgr.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        mgr.distanceFilter = 6                        // sık gönder (sağlıklı algılama)
+        // En detaylı rota: konum mesafe-tabanlı; 5 m'de bir gönder (hareket halinde
+        // BestForNavigation ~1 sn'de bir fix verir → motorda saniyenin altında nokta).
+        // 5 m, GPS titremesini (jitter) yakalamadan en yoğun temiz takip noktası.
+        mgr.distanceFilter = 5
         // Sadece Info.plist UIBackgroundModes=location içeriyorsa aç (yoksa çökmesin)
         let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
         if modes.contains("location") { mgr.allowsBackgroundLocationUpdates = true }
