@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 // Özet sekmesi: günlük + aralık özetleri listelenir; kullanıcı tarih/saat aralığı seçip özet çıkarabilir.
 struct SummariesView: View {
@@ -8,6 +9,7 @@ struct SummariesView: View {
     @State private var showRange = false
     @State private var busy = false
     @State private var note: String?
+    @State private var playerBox: PlayerBox?
 
     var body: some View {
         NavigationStack {
@@ -37,12 +39,21 @@ struct SummariesView: View {
                         }
 
                         ForEach(items) { s in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(s.date).font(.system(size: 16, weight: .bold)).foregroundStyle(Brand.accent)
-                                Text(s.summary).font(.system(size: 14)).foregroundStyle(.primary)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            HStack(alignment: .top, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(s.date).font(.system(size: 16, weight: .bold)).foregroundStyle(Brand.accent)
+                                    Text(s.summary).font(.system(size: 14)).foregroundStyle(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                if let vid = s.videoId {   // o günün videosu varsa izle
+                                    Button { play(vid) } label: {
+                                        Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                            .foregroundStyle(.white).frame(width: 40, height: 40)
+                                            .background(Brand.gradient, in: Circle())
+                                    }.buttonStyle(.plain)
+                                }
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(14).glassPanel(18).smoothAppear()
                         }
                     }.padding(16)
@@ -52,6 +63,19 @@ struct SummariesView: View {
         }
         .task { items = await store.activities() }
         .sheet(isPresented: $showRange) { RangeSheet { from, to in Task { await genRange(from, to) } } }
+        .sheet(item: $playerBox) { box in
+            VideoPlayer(player: box.player).ignoresSafeArea()
+                .onAppear { box.player.play() }.onDisappear { box.player.pause() }
+        }
+    }
+
+    func play(_ id: String) {
+        Task {
+            let asset = AVURLAsset(url: store.videoURL(id), options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+            _ = try? await asset.load(.isPlayable)
+            let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+            await MainActor.run { playerBox = PlayerBox(player: p) }
+        }
     }
 
     func genToday() async {

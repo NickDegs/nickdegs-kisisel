@@ -16,7 +16,7 @@ struct Position: Codable, Identifiable, Hashable {
 }
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
 struct Announcement: Identifiable { var title: String; var body: String; var url: String; var ts: Int; var id: Int { ts } }
-struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var id: String { date } }
+struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var videoId: String? = nil; var id: String { date } }
 struct Friend: Codable, Identifiable, Hashable {
     var username: String; var name: String?; var avatar: Avatar?; var online: Bool?
     var id: String { username }
