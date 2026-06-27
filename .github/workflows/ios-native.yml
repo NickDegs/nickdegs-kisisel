@@ -69,6 +69,7 @@ jobs:
         working-directory: ios-native
         run: |
           BUILD_NUMBER=$(date -u +%Y%m%d%H%M%S)
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
           xcodebuild archive \
             -project MoveLog.xcodeproj \
             -scheme MoveLog \
@@ -147,20 +148,35 @@ jobs:
                   r = urllib.request.urlopen(req); return r.status, json.loads(r.read() or b"{}")
               except urllib.error.HTTPError as e:
                   return e.code, e.read().decode()
+          TARGET = os.environ.get("BUILD_NUMBER", "").strip()
+          print("hedef build:", TARGET or "(latest)")
           bid = None
-          for _ in range(30):
-              s, d = api("GET", f"/v1/builds?filter[app]={APP}&limit=1&sort=-uploadedDate")
+          for _ in range(40):   # ~30 dk: build VALID olana kadar bekle
+              q = f"/v1/builds?filter[app]={APP}&limit=5&sort=-uploadedDate"
+              if TARGET: q += f"&filter[version]={TARGET}"   # TAM bu build'i hedefle (eski/yanlış atanmasın)
+              s, d = api("GET", q)
               if isinstance(d, dict) and d.get("data"):
                   b = d["data"][0]; st = b["attributes"]["processingState"]
                   print("build", b["attributes"]["version"], st)
                   if st == "VALID": bid = b["id"]; break
                   if st in ("FAILED", "INVALID"): break
-              time.sleep(30)
+              time.sleep(45)
           if bid:
               for g in GROUPS:
                   s, _ = api("POST", f"/v1/betaGroups/{g}/relationships/builds", {"data": [{"type": "builds", "id": bid}]})
                   print("assign", g, s)
-              print("✅ iç teste otomatik atandı")
+              # DOĞRULA: internalBuildState IN_BETA_TESTING oldu mu; olmadıysa tekrar dene
+              ok = False
+              for _ in range(6):
+                  time.sleep(8)
+                  s, dd = api("GET", f"/v1/builds/{bid}?include=buildBetaDetail")
+                  for inc in (dd.get("included", []) if isinstance(dd, dict) else []):
+                      if inc.get("type") == "buildBetaDetails" and inc["attributes"].get("internalBuildState") == "IN_BETA_TESTING":
+                          ok = True
+                  if ok: break
+                  for g in GROUPS:
+                      api("POST", f"/v1/betaGroups/{g}/relationships/builds", {"data": [{"type": "builds", "id": bid}]})
+              print("✅ iç teste atandı (IN_BETA_TESTING)" if ok else "⚠️ atandı, state doğrulanamadı")
           else:
               print("build VALID olmadı, atama atlandı")
           PY
