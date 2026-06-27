@@ -21,7 +21,10 @@ struct LoginView: View {
     var body: some View {
         ZStack {
             AuroraBackground()
-            VStack(spacing: 0) {
+                .contentShape(Rectangle())
+                .onTapGesture { focus = nil }       // boşluğa dokun → klavye kapanır, buton erişilir
+            ScrollView {
+              VStack(spacing: 0) {
                 Image(systemName: "point.topleft.down.curvedto.point.bottomright.up")
                     .font(.system(size: 38, weight: .semibold))
                     .foregroundStyle(Brand.gradient)
@@ -50,11 +53,13 @@ struct LoginView: View {
                     .padding(16).glassPanel(18)
 
                     if store.loginError {
-                        Text(L("Numara gönderilemedi, tekrar dene", "Couldn't send, try again"))
+                        Text(L("Geçerli numara gir ve tekrar dene", "Enter a valid number and try again"))
                             .font(.footnote).foregroundStyle(.red).padding(.top, 12)
                     }
 
                     Button {
+                        focus = nil                                  // klavyeyi kapat
+                        guard phone.filter(\.isNumber).count >= 7 else { store.loginError = true; return }
                         busy = true
                         Task {
                             let ok = await store.smsStart(fullPhone)
@@ -64,9 +69,10 @@ struct LoginView: View {
                     } label: {
                         HStack { if busy { ProgressView().tint(.white) }
                             Text(L("Kod gönder", "Send code")) }
+                            .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.glassyProminent())
-                    .disabled(busy || phone.filter(\.isNumber).count < 7)
+                    .disabled(busy)                                  // her zaman basılabilir (busy hariç)
                     .padding(.top, 22)
 
                     Text(L("Telefon numaranıza SMS ile tek kullanımlık kod göndereceğiz.",
@@ -118,6 +124,14 @@ struct LoginView: View {
             .scaleEffect(shown ? 1 : 0.96)
             .opacity(shown ? 1 : 0)
             .blur(radius: shown ? 0 : 6)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(L("Bitti","Done")) { focus = nil }
+            }
         }
         .onAppear {
             float = true
