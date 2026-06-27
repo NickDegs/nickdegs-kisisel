@@ -13,6 +13,14 @@ struct RoutesView: View {
     @State private var savingId: String? = nil
     @State private var savedId: String? = nil
 
+    // Gün + saat: "11 Haz 2026 · 14:30" (kim hangi gün ne yapmış görünsün)
+    func dayTime(_ r: Ride) -> String {
+        guard let ts = r.ts, ts > 0 else { return r.date }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: L("tr_TR", "en_US"))
+        f.dateFormat = L("d MMM yyyy · HH:mm", "MMM d, yyyy · HH:mm")
+        return f.string(from: Date(timeIntervalSince1970: ts))
+    }
     func typeLabel(_ t: String?) -> String {
         switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
         case "run": return L("Koşu","Running"); case "walk": return L("Yürüyüş","Walking"); default: return L("Diğer","Other") }
@@ -33,7 +41,7 @@ struct RoutesView: View {
                                 Image(systemName: typeIcon(r.type)).font(.system(size: 22))
                                     .foregroundStyle(Brand.accent).frame(width: 50, height: 50).glassPanel(16)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(r.date).font(.system(size: 17, weight: .semibold))
+                                    Text(dayTime(r)).font(.system(size: 17, weight: .semibold))
                                     Menu {
                                         ForEach(RIDE_TYPES, id: \.id) { t in
                                             Button {
