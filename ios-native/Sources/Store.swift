@@ -196,6 +196,13 @@ struct Convo: Codable, Identifiable, Hashable {
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
     }
+    // Videoyu geçmişten sil (yumuşak-sil)
+    @discardableResult
+    func deleteRide(_ id: String) async -> Bool {
+        guard let d = try? await req("/api/rides/\(id)", method: "DELETE"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
+        return (o["ok"] as? Bool) ?? false
+    }
     // Mevcut bir rota videosunu yeni ayarlarla baştan üret (Rotalar > Düzenle).
     func regenerateRide(_ id: String, type: String, mode: String, aspect: String, premium: Bool, speed: String, music: String = "") async -> Bool {
         let body: [String:Any] = ["type": type, "mode": mode, "aspect": aspect,

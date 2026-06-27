@@ -12,6 +12,7 @@ struct RoutesView: View {
     @State private var editRide: Ride?
     @State private var savingId: String? = nil
     @State private var savedId: String? = nil
+    @State private var pendingDelete: Ride?
 
     // Gün + saat: "11 Haz 2026 · 14:30" (kim hangi gün ne yapmış görünsün)
     func dayTime(_ r: Ride) -> String {
@@ -77,6 +78,11 @@ struct RoutesView: View {
                                 }.buttonStyle(.plain).disabled(savingId == r.id)
                             }
                             .padding(14).glassPanel(20).smoothAppear()
+                            .contextMenu {   // uzun bas → sil
+                                Button(role: .destructive) { pendingDelete = r } label: {
+                                    Label(L("Geçmişten sil", "Delete"), systemImage: "trash")
+                                }
+                            }
                         }
                     }.padding(16)
                 }
@@ -84,6 +90,14 @@ struct RoutesView: View {
             .navigationTitle("Move Log")
         }
         .task { rides = await store.rides() }
+        .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
+                            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                            presenting: pendingDelete) { r in
+            Button(L("Sil", "Delete"), role: .destructive) {
+                Task { if await store.deleteRide(r.id) { rides = await store.rides() }; pendingDelete = nil }
+            }
+            Button(L("Vazgeç", "Cancel"), role: .cancel) { pendingDelete = nil }
+        }
         .sheet(item: $playerBox) { box in
             VideoPlayer(player: box.player)
                 .ignoresSafeArea()
