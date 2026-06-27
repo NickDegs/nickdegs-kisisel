@@ -164,15 +164,17 @@ struct GenerateSheet: View {
         Text(t.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
     }
     func modeRow(_ id: String, _ label: String, free: Bool) -> some View {
-        Button {
-            if free || premium { mode = id } else { showPaywall = true }
-        } label: {
-            HStack {
-                Text(label)
-                if !free && !premium { Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary) }
-                Spacer()
-                if mode == id { Image(systemName: "checkmark").foregroundStyle(Brand.accent) }
-            }.padding(.horizontal, 14).padding(.vertical, 12)
-        }.buttonStyle(.plain).glassPanel(14)
+        // Button + interaktif glassEffect dokunuşu yutuyordu → doğrudan tap-gesture + contentShape.
+        HStack {
+            Text(label)
+            if !free && !premium { Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary) }
+            Spacer()
+            if mode == id { Image(systemName: "checkmark").foregroundStyle(Brand.accent) }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassPanel(14)
+        .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onTapGesture { if free || premium { mode = id } else { showPaywall = true } }
     }
 }
