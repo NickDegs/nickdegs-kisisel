@@ -11,6 +11,7 @@ struct Ride: Codable, Identifiable, Hashable {
 struct Stats: Codable { var totalRides: Int; var byType: [String:Int]; var latest: Ride? }
 struct Position: Codable, Identifiable, Hashable {
     var device: String; var lat: Double; var lon: Double; var speedKmh: Double; var online: Bool
+    var avatar: Avatar? = nil           // harita pini profil fotoğrafını göstersin
     var id: String { device }
 }
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }

@@ -27,7 +27,7 @@ struct MapTab: View {
                     UserAnnotation()
                     ForEach(positions) { p in
                         Annotation(p.device, coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lon)) {
-                            AvatarView(name: p.device, size: 42)
+                            AvatarView(name: p.device, avatar: p.avatar, size: 42)
                                 .overlay(Circle().strokeBorder(.white, lineWidth: 3))
                                 .overlay(alignment: .bottom) {
                                     Triangle().fill(.white).frame(width: 16, height: 10).offset(y: 9)
@@ -186,7 +186,7 @@ struct MapTab: View {
     // Find My tarzı kişi kartı
     @ViewBuilder func personCard(_ p: Position, compact: Bool) -> some View {
         HStack(spacing: 12) {
-            AvatarView(name: p.device, size: compact ? 38 : 46)
+            AvatarView(name: p.device, avatar: p.avatar, size: compact ? 38 : 46)
             VStack(alignment: .leading, spacing: 3) {
                 Text(p.device).font(.system(size: compact ? 14 : 16, weight: .semibold)).lineLimit(1)
                 HStack(spacing: 6) {
