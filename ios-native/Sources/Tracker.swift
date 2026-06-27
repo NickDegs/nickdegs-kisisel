@@ -10,6 +10,7 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var rideStart: Date?         // manuel gezi başlangıcı
     private var deviceId: String?
     private var ingestURL: String?
+    private var lastSent: CLLocation?       // ışınlanma filtresi için son gönderilen konum
 
     override init() {
         super.init()
@@ -83,6 +84,15 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ m: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
         guard let loc = locs.last, let id = deviceId, let base = ingestURL,
               var comps = URLComponents(string: base) else { return }
+        // GPS gürültü / ışınlanma filtresi (kötü sinyali minimuma indir)
+        guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy <= 50 else { return }   // doğruluk kötü = at
+        guard loc.timestamp.timeIntervalSinceNow > -15 else { return }                    // bayat fix = at
+        if let prev = lastSent {
+            let d = loc.distance(from: prev)
+            let dt = loc.timestamp.timeIntervalSince(prev.timestamp)
+            if dt > 0, d / dt > 70 { return }        // >252 km/h imkânsız = ışınlanma, at
+        }
+        lastSent = loc
         comps.queryItems = [
             .init(name: "id", value: id),
             .init(name: "lat", value: String(loc.coordinate.latitude)),
