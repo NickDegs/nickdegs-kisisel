@@ -1,0 +1,97 @@
+import SwiftUI
+
+// Özet sekmesi: günlük + aralık özetleri listelenir; kullanıcı tarih/saat aralığı seçip özet çıkarabilir.
+struct SummariesView: View {
+    @EnvironmentObject var store: Store
+    @AppStorage("nd_premium") var premium = false
+    @State private var items: [ActivitySummary] = []
+    @State private var showRange = false
+    @State private var busy = false
+    @State private var note: String?
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                AuroraBackground()
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        HStack(spacing: 10) {
+                            Button { Task { await genToday() } } label: {
+                                Label(L("Bugünü özetle", "Summarize today"), systemImage: "sparkles")
+                                    .font(.system(size: 14, weight: .semibold)).frame(maxWidth: .infinity)
+                            }.buttonStyle(.glassyProminent()).disabled(busy)
+                            Button { showRange = true } label: {
+                                Label(L("Tarih aralığı", "Date range"), systemImage: "calendar")
+                                    .font(.system(size: 14, weight: .semibold)).frame(maxWidth: .infinity)
+                            }.buttonStyle(.glassyProminent()).disabled(busy)
+                        }
+                        if let note { Text(note).font(.caption).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) }
+
+                        if items.isEmpty && !busy {
+                            VStack(spacing: 8) {
+                                Image(systemName: "doc.text.magnifyingglass").font(.system(size: 34)).foregroundStyle(.secondary)
+                                Text(L("Henüz özet yok. Bir gün sür ya da yukarıdan bir aralık seç, özetin burada listelensin.",
+                                       "No summaries yet. Ride a day or pick a range above; summaries appear here."))
+                                    .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            }.padding(.top, 48).padding(.horizontal, 20)
+                        }
+
+                        ForEach(items) { s in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(s.date).font(.system(size: 16, weight: .bold)).foregroundStyle(Brand.accent)
+                                Text(s.summary).font(.system(size: 14)).foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(14).glassPanel(18).smoothAppear()
+                        }
+                    }.padding(16)
+                }
+            }
+            .navigationTitle(L("Özet", "Summary"))
+        }
+        .task { items = await store.activities() }
+        .sheet(isPresented: $showRange) { RangeSheet { from, to in Task { await genRange(from, to) } } }
+    }
+
+    func genToday() async {
+        busy = true; note = L("Hazırlanıyor…", "Preparing…")
+        _ = await store.summaryNow(premium: premium)
+        try? await Task.sleep(for: .seconds(2)); items = await store.activities()
+        busy = false; note = nil
+    }
+    func genRange(_ from: Double, _ to: Double) async {
+        busy = true; note = L("Aralık özeti hazırlanıyor…", "Preparing range summary…")
+        _ = await store.summaryRange(from: from, to: to)
+        try? await Task.sleep(for: .seconds(2)); items = await store.activities()
+        busy = false; note = L("Hazır olunca listede görünür.", "Appears in the list when ready.")
+    }
+}
+
+// Tarih + saat aralığı seçici
+struct RangeSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @State private var from = Calendar.current.date(byAdding: .hour, value: -3, to: Date()) ?? Date()
+    @State private var to = Date()
+    var onGen: (Double, Double) -> Void
+    var body: some View {
+        NavigationStack {
+            Form {
+                DatePicker(L("Başlangıç", "Start"), selection: $from)
+                DatePicker(L("Bitiş", "End"), selection: $to)
+                if to <= from {
+                    Text(L("Bitiş, başlangıçtan sonra olmalı.", "End must be after start.")).font(.caption).foregroundStyle(.red)
+                }
+            }
+            .navigationTitle(L("Tarih aralığı", "Date range"))
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(L("Özet çıkar", "Summarize")) {
+                        onGen(from.timeIntervalSince1970, to.timeIntervalSince1970); dismiss()
+                    }.disabled(to <= from)
+                }
+                ToolbarItem(placement: .cancellationAction) { Button(L("Vazgeç", "Cancel")) { dismiss() } }
+            }
+        }
+    }
+}

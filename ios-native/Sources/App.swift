@@ -42,7 +42,7 @@ struct RootView: View {
             RoutesView().tabItem { Label(L("Rotalar","Routes"), systemImage: "map") }.tag(0)
             ChatListView().tabItem { Label(L("Sohbet","Chat"), systemImage: "bubble.left.and.bubble.right") }.tag(1)
             MapTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(2)
-            StatsView().tabItem { Label(L("İstatistik","Stats"), systemImage: "chart.bar") }.tag(3)
+            SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(3)
             ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.

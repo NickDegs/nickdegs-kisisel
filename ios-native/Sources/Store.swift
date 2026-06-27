@@ -16,6 +16,7 @@ struct Position: Codable, Identifiable, Hashable {
 }
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
 struct Announcement: Identifiable { var title: String; var body: String; var url: String; var ts: Int; var id: Int { ts } }
+struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var id: String { date } }
 struct Friend: Codable, Identifiable, Hashable {
     var username: String; var name: String?; var avatar: Avatar?; var online: Bool?
     var id: String { username }
@@ -239,6 +240,19 @@ struct Convo: Codable, Identifiable, Hashable {
     @discardableResult
     func summaryNow(premium: Bool) async -> Bool {
         guard let d = try? await req("/api/summary/now", method: "POST", body: ["premium": premium]),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
+        return (o["ok"] as? Bool) ?? false
+    }
+    // Özet listesi (günlük + range özetleri)
+    func activities() async -> [ActivitySummary] {
+        guard let d = try? await req("/api/activities"),
+              let o = try? dec().decode([String:[ActivitySummary]].self, from: d)["activities"] else { return [] }
+        return o
+    }
+    // Kullanıcının seçtiği tarih+saat aralığı için özet üret
+    @discardableResult
+    func summaryRange(from: Double, to: Double) async -> Bool {
+        guard let d = try? await req("/api/summary/range", method: "POST", body: ["from": from, "to": to]),
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
     }
