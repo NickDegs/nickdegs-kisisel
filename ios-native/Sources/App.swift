@@ -35,15 +35,16 @@ struct RootView: View {
     @State private var ann: Announcement?
     @AppStorage("nd_ann_seen") private var annSeen = 0
     static func initialTab() -> Int {
-        switch AppEnv.screen { case "chat": return 1; case "gps","map": return 2; case "stats": return 3; case "profile","paywall","avatar": return 4; default: return 0 }
+        switch AppEnv.screen { case "videos": return 1; case "chat": return 2; case "gps","map": return 3; case "stats": return 4; case "profile","paywall","avatar": return 5; default: return 0 }
     }
     var body: some View {
         TabView(selection: $sel) {
             RoutesView().tabItem { Label(L("Rotalar","Routes"), systemImage: "map") }.tag(0)
-            ChatListView().tabItem { Label(L("Sohbet","Chat"), systemImage: "bubble.left.and.bubble.right") }.tag(1)
-            MapTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(2)
-            SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(3)
-            ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
+            VideosView().tabItem { Label(L("Videolarım","My Videos"), systemImage: "film.stack") }.tag(1)
+            ChatListView().tabItem { Label(L("Sohbet","Chat"), systemImage: "bubble.left.and.bubble.right") }.tag(2)
+            MapTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(3)
+            SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(4)
+            ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(5)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.
         .safeAreaInset(edge: .top) {

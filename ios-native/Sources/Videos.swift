@@ -1,0 +1,135 @@
+import SwiftUI
+import AVKit
+import UIKit
+
+// "Videolarım" sekmesi: üretilen TÜM videolar burada listelenir.
+// Kullanıcı izleyebilir, galerisine tekrar kaydedebilir veya geçmişten silebilir.
+// (Rotalar sekmesinden ayrı: burası saf video kitaplığı — düzenleme/tip yok, sadece izle/kaydet/sil.)
+struct VideosView: View {
+    @EnvironmentObject var store: Store
+    @State private var rides: [Ride] = []
+    @State private var playerBox: PlayerBox?
+    @State private var savingId: String? = nil
+    @State private var savedId: String? = nil
+    @State private var pendingDelete: Ride?
+    @State private var loaded = false
+
+    func dayTime(_ r: Ride) -> String {
+        guard let ts = r.ts, ts > 0 else { return r.date }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: L("tr_TR", "en_US"))
+        f.dateFormat = L("d MMM yyyy · HH:mm", "MMM d, yyyy · HH:mm")
+        return f.string(from: Date(timeIntervalSince1970: ts))
+    }
+    func typeLabel(_ t: String?) -> String {
+        switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
+        case "run": return L("Koşu","Running"); case "walk": return L("Yürüyüş","Walking"); default: return L("Diğer","Other") }
+    }
+    func typeIcon(_ t: String?) -> String {
+        switch t { case "moto": return "motorcycle"; case "bike": return "bicycle"
+        case "run": return "figure.run"; case "walk": return "figure.walk"; default: return "film" }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                AuroraBackground()
+                ScrollView {
+                    LazyVStack(spacing: 14) {
+                        if rides.isEmpty && loaded {
+                            VStack(spacing: 10) {
+                                Image(systemName: "film.stack").font(.system(size: 40)).foregroundStyle(.secondary)
+                                Text(L("Henüz video yok", "No videos yet")).font(.headline)
+                                Text(L("Bir rota sür; videon bulutta otomatik oluşturulup burada listelenir. Dilediğini galerine kaydedebilir veya silebilirsin.",
+                                       "Ride a route; your video is auto-rendered in the cloud and listed here. Save any to Photos or delete it."))
+                                    .font(.callout).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            }.padding(.top, 70).padding(.horizontal, 26)
+                        }
+                        ForEach(rides) { r in
+                            VStack(spacing: 0) {
+                                // büyük izleme kartı
+                                Button { play(r) } label: {
+                                    ZStack {
+                                        Brand.gradient.opacity(0.18)
+                                        Image(systemName: typeIcon(r.type)).font(.system(size: 30))
+                                            .foregroundStyle(Brand.accent.opacity(0.5))
+                                        Image(systemName: "play.circle.fill").font(.system(size: 52))
+                                            .foregroundStyle(.white.opacity(0.95)).shadow(radius: 8)
+                                    }
+                                    .frame(height: 150).frame(maxWidth: .infinity)
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                }.buttonStyle(.plain)
+
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(dayTime(r)).font(.system(size: 15, weight: .semibold))
+                                        Text(typeLabel(r.type)).font(.caption).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    // galerine kaydet
+                                    Button { save(r) } label: {
+                                        Group {
+                                            if savingId == r.id { ProgressView() }
+                                            else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
+                                            else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
+                                        }.font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).glassPanel(21)
+                                    }.buttonStyle(.plain).disabled(savingId == r.id)
+                                    // sil
+                                    Button { pendingDelete = r } label: {
+                                        Image(systemName: "trash").font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(.red).frame(width: 44, height: 44).glassPanel(21)
+                                    }.buttonStyle(.plain)
+                                }.padding(.top, 10)
+                            }
+                            .padding(12).glassPanel(22).smoothAppear()
+                        }
+                    }.padding(16)
+                }
+                .refreshable { rides = await store.rides() }
+            }
+            .navigationTitle(L("Videolarım","My Videos"))
+        }
+        .task { rides = await store.rides(); loaded = true }
+        .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
+                            isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
+                            presenting: pendingDelete) { r in
+            Button(L("Sil", "Delete"), role: .destructive) {
+                Task { if await store.deleteRide(r.id) { rides = await store.rides() }; pendingDelete = nil }
+            }
+            Button(L("Vazgeç", "Cancel"), role: .cancel) { pendingDelete = nil }
+        }
+        .sheet(item: $playerBox) { box in
+            VideoPlayer(player: box.player).ignoresSafeArea()
+                .onAppear { box.player.play() }.onDisappear { box.player.pause() }
+        }
+    }
+
+    func play(_ r: Ride) {
+        Task {
+            let asset = AVURLAsset(url: store.videoURL(r.id),
+                                   options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+            _ = try? await asset.load(.isPlayable)
+            let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+            p.automaticallyWaitsToMinimizeStalling = false
+            await MainActor.run { playerBox = PlayerBox(player: p) }
+        }
+    }
+
+    func save(_ r: Ride) {
+        savingId = r.id
+        Task {
+            defer { savingId = nil }
+            var req = URLRequest(url: store.videoURL(r.id))
+            for (k, v) in store.authHeader { req.setValue(v, forHTTPHeaderField: k) }
+            guard let (data, _) = try? await URLSession.shared.data(for: req) else { return }
+            let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("\(r.id).mp4")
+            try? data.write(to: tmp)
+            if UIVideoAtPathIsCompatibleWithSavedPhotosAlbum(tmp.path) {
+                UISaveVideoAtPathToSavedPhotosAlbum(tmp.path, nil, nil, nil)
+            }
+            savedId = r.id
+            try? await Task.sleep(for: .seconds(2))
+            if savedId == r.id { savedId = nil }
+        }
+    }
+}
