@@ -18,6 +18,7 @@ func rideLabel(_ t: String) -> String {
 // Gezi bitince video oluşturma: tip (değiştirilebilir) + mod + en-boy (premium gating)
 struct GenerateSheet: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var iap: IAP
     @Environment(\.dismiss) var dismiss
     let from: Double
     let to: Double
@@ -141,6 +142,28 @@ struct GenerateSheet: View {
                         else { Text(rideId == nil ? L("Video oluştur","Create video")
                                                   : L("Yeniden oluştur","Regenerate")) }
                     }.buttonStyle(.glassyProminent()).disabled(sending)
+
+                    // Günlük limit dolunca / proaktif: bugünün limitini 2x yapan boost (consumable IAP)
+                    if premium, let b = iap.boost {
+                        Button {
+                            Task { _ = await iap.buyBoost() }
+                        } label: {
+                            HStack(spacing: 8) {
+                                if iap.boostWorking { ProgressView() }
+                                else { Image(systemName: "bolt.fill").foregroundStyle(.yellow) }
+                                Text(L("Bugünün limitini 2× yap","Double today's limit") + " — \(b.displayPrice)")
+                                Spacer()
+                                Image(systemName: "sparkles").font(.caption2)
+                            }.padding(.horizontal, 14).padding(.vertical, 12)
+                        }.buttonStyle(.plain).glassPanel(14).tint(.primary).disabled(iap.boostWorking)
+                        if let m = iap.boostMsg {
+                            Text(m).font(.caption2).foregroundStyle(Brand.accent)
+                        } else {
+                            Text(L("Günlük video limitin dolduysa anında 2 katına çıkar (sadece bugün).",
+                                   "If you hit today's limit, instantly double it (today only)."))
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
 
                     if localErr {
                         Text(L("Bu rotada konum verisi yok ya da istek başarısız.","No location data for this route or request failed."))

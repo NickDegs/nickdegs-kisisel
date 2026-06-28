@@ -7,13 +7,18 @@ import StoreKit
 @MainActor final class IAP: ObservableObject {
     static let monthlyID = "com.nickdegs.kisisel.premium.monthly"
     static let yearlyID = "com.nickdegs.kisisel.premium.yearly"
-    static var ids: [String] { [monthlyID, yearlyID] }
+    static let boostID = "com.nickdegs.kisisel.boost.daily2x"   // consumable: o gün limitleri 2x
+    static var ids: [String] { [monthlyID, yearlyID] }          // abonelikler (entitlement)
+    static var allIDs: [String] { [monthlyID, yearlyID, boostID] }
 
     @Published var monthly: Product?
     @Published var yearly: Product?
+    @Published var boost: Product?
     @Published var purchased = UserDefaults.standard.bool(forKey: "nd_premium")
     @Published var working = false
+    @Published var boostWorking = false
     @Published var lastError: String?      // satın alma hatasını arayüze göster
+    @Published var boostMsg: String?       // boost satın alma sonucu (arayüze)
     @Published var loadMsg: String?        // ürün yükleme durumu
     private var updates: Task<Void, Never>?
 
@@ -33,23 +38,60 @@ import StoreKit
     }
     deinit { updates?.cancel() }
 
-    // Doğrulanmış transaction'dan premium'u HEMEN aç (cache bekleme)
+    // Doğrulanmış transaction'dan premium'u HEMEN aç (cache bekleme) + backend'e bildir
     private func apply(_ t: Transaction) {
         if Self.ids.contains(t.productID), t.revocationDate == nil {
             setPurchased(true)
+            Task { await Self.report(t.jwsRepresentation) }   // backend premium (sunucu render kilidi açılır)
         }
     }
 
     func load() async {
         do {
-            let prods = try await Product.products(for: Self.ids)
+            let prods = try await Product.products(for: Self.allIDs)
             monthly = prods.first { $0.id == Self.monthlyID }
             yearly = prods.first { $0.id == Self.yearlyID }
+            boost = prods.first { $0.id == Self.boostID }
             loadMsg = prods.isEmpty
                 ? "Ürünler mağazadan gelmedi. App Store Connect → Business → Paid Apps anlaşması + banka/vergi tamamlanmalı (birkaç saat sürebilir)."
                 : nil
         } catch {
             loadMsg = "Ürünler yüklenemedi: \(error.localizedDescription)"
+        }
+    }
+
+    // Satın almayı backend'e bildir (StoreKit2 jwsRepresentation). Abonelik->premium, boost->günlük 2x.
+    static func report(_ jws: String) async {
+        guard let url = URL(string: API + "/api/iap/verify") else { return }
+        let token = UserDefaults.standard.string(forKey: "nd_token") ?? ""
+        var r = URLRequest(url: url); r.httpMethod = "POST"
+        r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !token.isEmpty { r.setValue("Bearer " + token, forHTTPHeaderField: "Authorization") }
+        r.httpBody = try? JSONSerialization.data(withJSONObject: ["jws": jws])
+        _ = try? await URLSession.shared.data(for: r)
+    }
+
+    // BOOST satın al (consumable): o gün limitleri 2x. Her alım +1 kat (üst üste alınabilir).
+    @discardableResult
+    func buyBoost() async -> Bool {
+        guard let product = boost else { boostMsg = "Boost ürünü yüklenmedi."; return false }
+        boostWorking = true; boostMsg = nil; defer { boostWorking = false }
+        do {
+            switch try await product.purchase() {
+            case .success(let v):
+                if case .verified(let t) = v {
+                    await Self.report(t.jwsRepresentation)   // backend o günün limitini 2x yapar
+                    await t.finish()
+                    boostMsg = "Bugünkü limitin 2 katına çıktı 🚀"
+                    return true
+                }
+                boostMsg = "Satın alma doğrulanamadı."; return false
+            case .pending: boostMsg = "Onay bekleniyor."; return false
+            case .userCancelled: return false
+            @unknown default: boostMsg = "Bilinmeyen durum."; return false
+            }
+        } catch {
+            boostMsg = "Boost hatası: \(error.localizedDescription)"; return false
         }
     }
 
