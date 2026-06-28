@@ -10,6 +10,7 @@ struct VideoThumb: View {
     let id: String
     let url: URL
     let icon: String
+    var headers: [String:String] = [:]   // R2 videosu auth ister; play() gibi header geçilmeli (yoksa 401 -> önizleme boş)
     @State private var img: UIImage?
     var body: some View {
         ZStack {
@@ -30,7 +31,8 @@ struct VideoThumb: View {
     func load() async {
         if let c = ThumbCache.imgs[id] { img = c; return }
         if img != nil { return }
-        let asset = AVURLAsset(url: url)
+        // play() ile AYNI: auth header geç -> backend /video 302 R2'ye yönlendirir, kare çekilir
+        let asset = AVURLAsset(url: url, options: headers.isEmpty ? nil : ["AVURLAssetHTTPHeaderFieldsKey": headers])
         let gen = AVAssetImageGenerator(asset: asset)
         gen.appliesPreferredTrackTransform = true
         gen.requestedTimeToleranceBefore = .positiveInfinity
@@ -92,7 +94,7 @@ struct VideosView: View {
                             VStack(spacing: 0) {
                                 // büyük izleme kartı — gerçek video karesinden önizleme
                                 Button { play(r) } label: {
-                                    VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type))
+                                    VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type), headers: store.authHeader)
                                 }.buttonStyle(.plain)
 
                                 HStack(spacing: 12) {
