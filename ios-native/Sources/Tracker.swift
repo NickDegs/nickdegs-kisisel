@@ -11,6 +11,8 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var deviceId: String?
     private var ingestURL: String?
     private var lastSent: CLLocation?       // ışınlanma filtresi için son gönderilen konum
+    private var lastLoc: CLLocation?        // en son geçerli konum (heartbeat için)
+    private var heartbeat: Timer?           // 15 sn'de bir zorunlu gönderim (boşluk/ışınlanma olmasın)
 
     override init() {
         super.init()
@@ -41,6 +43,19 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
         if st == .notDetermined || st == .authorizedWhenInUse { mgr.requestAlwaysAuthorization() }
         mgr.startUpdatingLocation()
         mgr.startMonitoringSignificantLocationChanges()   // app kapansa bile hareketle uyanır
+        startHeartbeat()
+    }
+
+    // 15 sn HEARTBEAT: hareket az olsa/iOS arka planda seyreltse bile son konumu en geç 15 sn'de
+    // bir Traccar'a yollar -> iz boşluksuz/yoğun, "ışınlanma" olmaz, anlık takip + en kaliteli video.
+    private func startHeartbeat() {
+        DispatchQueue.main.async {
+            self.heartbeat?.invalidate()
+            self.heartbeat = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
+                guard let self, let loc = self.lastLoc, loc.timestamp.timeIntervalSinceNow > -30 else { return }
+                self.sendLoc(loc, force: true)
+            }
+        }
     }
 
     private func persist(deviceId: String, url: String) {
@@ -58,6 +73,7 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     func stop() {
         mgr.stopUpdatingLocation()
         mgr.stopMonitoringSignificantLocationChanges()
+        heartbeat?.invalidate(); heartbeat = nil
         set(false)
     }
 
@@ -85,12 +101,19 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ m: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
-        guard let loc = locs.last, let id = deviceId, let base = ingestURL,
-              var comps = URLComponents(string: base) else { return }
+        guard let loc = locs.last else { return }
         // GPS gürültü / ışınlanma filtresi (kötü sinyali minimuma indir)
         guard loc.horizontalAccuracy > 0, loc.horizontalAccuracy <= 50 else { return }   // doğruluk kötü = at
         guard loc.timestamp.timeIntervalSinceNow > -15 else { return }                    // bayat fix = at
-        if let prev = lastSent {
+        lastLoc = loc
+        sendLoc(loc, force: false)
+    }
+
+    // Konumu Traccar'a gönder. force=false: ışınlanma filtresi uygula (mesafe-tabanlı normal akış).
+    // force=true: 15 sn heartbeat (duruyor olsa bile düzenli nokta -> boşluk yok).
+    private func sendLoc(_ loc: CLLocation, force: Bool) {
+        guard let id = deviceId, let base = ingestURL, var comps = URLComponents(string: base) else { return }
+        if !force, let prev = lastSent {
             let d = loc.distance(from: prev)
             let dt = loc.timestamp.timeIntervalSince(prev.timestamp)
             if dt > 0, d / dt > 70 { return }        // >252 km/h imkânsız = ışınlanma, at
