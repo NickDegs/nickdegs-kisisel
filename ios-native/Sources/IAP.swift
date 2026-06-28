@@ -29,7 +29,7 @@ import StoreKit
             // Uçuş sonrası / Ask to Buy / Family Sharing: bitmemiş işlemleri yakala
             for await result in Transaction.unfinished {
                 if case .verified(let t) = result {
-                    apply(t)
+                    apply(t, jws: result.jwsRepresentation)
                     await t.finish()
                 }
             }
@@ -38,11 +38,12 @@ import StoreKit
     }
     deinit { updates?.cancel() }
 
-    // Doğrulanmış transaction'dan premium'u HEMEN aç (cache bekleme) + backend'e bildir
-    private func apply(_ t: Transaction) {
+    // Doğrulanmış transaction'dan premium'u HEMEN aç (cache bekleme) + backend'e bildir.
+    // jws = VerificationResult.jwsRepresentation (Transaction'da yok, sonuç sarmalayıcısında).
+    private func apply(_ t: Transaction, jws: String) {
         if Self.ids.contains(t.productID), t.revocationDate == nil {
             setPurchased(true)
-            Task { await Self.report(t.jwsRepresentation) }   // backend premium (sunucu render kilidi açılır)
+            Task { await Self.report(jws) }   // backend premium (sunucu render kilidi açılır)
         }
     }
 
@@ -80,7 +81,7 @@ import StoreKit
             switch try await product.purchase() {
             case .success(let v):
                 if case .verified(let t) = v {
-                    await Self.report(t.jwsRepresentation)   // backend o günün limitini 2x yapar
+                    await Self.report(v.jwsRepresentation)   // backend o günün limitini 2x yapar
                     await t.finish()
                     boostMsg = "Bugünkü limitin 2 katına çıktı 🚀"
                     return true
@@ -114,7 +115,7 @@ import StoreKit
             switch try await product.purchase() {
             case .success(let v):
                 if case .verified(let t) = v {
-                    apply(t)              // ← premium'u HEMEN aç (cache'i bekleme)
+                    apply(t, jws: v.jwsRepresentation)   // ← premium'u HEMEN aç + backend'e bildir
                     await t.finish()
                     return purchased
                 }
@@ -147,7 +148,7 @@ import StoreKit
         Task { [weak self] in
             for await update in Transaction.updates {
                 if case .verified(let t) = update {
-                    self?.apply(t)        // ← cache'e güvenme, direkt aç
+                    self?.apply(t, jws: update.jwsRepresentation)   // ← cache'e güvenme, direkt aç
                     await t.finish()
                 }
             }
