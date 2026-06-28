@@ -109,55 +109,39 @@ struct GenerateSheet: View {
                     Button {
                         // Kural: algılama free, videoya dökme premium.
                         if !premium { showPaywall = true; return }
-                        sending = true; renderPct = 0; localErr = false
-                        UIApplication.shared.isIdleTimerDisabled = true   // render boyunca ekran açık
+                        sending = true; localErr = false
                         Task {
-                            // CİHAZDA render: GPS izini çek -> telefonda video -> galeriye kaydet (sunucu render etmez)
-                            let track = await store.track(from: from, to: to)
-                            guard track.count >= 3 else {
-                                sending = false; localErr = true; UIApplication.shared.isIdleTimerDisabled = false; return
-                            }
-                            let url = await LocalRouteVideo.render(points: track, aspect: aspect) { p in
-                                Task { @MainActor in renderPct = p }
-                            }
-                            var ok = false
-                            if let url { ok = await saveToPhotos(url) }
+                            // BULUT render: sunucuya istek bırak -> Cloud Run render eder -> R2 -> bitince bildirim.
+                            // Telefon yorulmaz, uygulama kapatılabilir (sıfır cihaz yükü).
+                            let ok = rideId == nil
+                                ? await store.generateRide(from: from, to: to, type: type, mode: mode,
+                                                           aspect: aspect, premium: premium, speed: speed, music: music)
+                                : await store.regenerateRide(rideId!, type: type, mode: mode,
+                                                             aspect: aspect, premium: premium, speed: speed, music: music)
                             sending = false; done = ok; localErr = !ok
-                            UIApplication.shared.isIdleTimerDisabled = false
-                            if ok { try? await Task.sleep(for: .seconds(1)); dismiss() }
+                            if ok { try? await Task.sleep(for: .seconds(1.8)); dismiss() }
                         }
                     } label: {
                         if sending { HStack(spacing: 8) { ProgressView()
-                            Text(L("Cihazda oluşturuluyor %\(Int(renderPct*100))", "Rendering \(Int(renderPct*100))%")) } }
-                        else if done { Label(L("Galerine kaydedildi 🎬","Saved to Photos"), systemImage: "checkmark") }
+                            Text(L("Kuyruğa alınıyor…", "Queuing…")) } }
+                        else if done { Label(L("Bulutta hazırlanıyor 🎬","Rendering in cloud"), systemImage: "checkmark.icloud") }
                         else { Text(rideId == nil ? L("Video oluştur","Create video")
                                                   : L("Yeniden oluştur","Regenerate")) }
                     }.buttonStyle(.glassyProminent()).disabled(sending)
 
                     if localErr {
-                        Text(L("Bu rotada konum verisi yok ya da kayıt başarısız.","No location data for this route or save failed."))
+                        Text(L("Bu rotada konum verisi yok ya da istek başarısız.","No location data for this route or request failed."))
                             .font(.caption2).foregroundStyle(.red)
                     }
-                    Text(L("Video telefonunda oluşturulup galerine kaydedilir (sunucu kullanmaz).",
-                           "Rendered on your device and saved to Photos (no server)."))
+                    if done {
+                        Text(L("Videon bulutta hazırlanıyor. Hazır olunca bildirim gelir; Rotalar ve Özet'te görünür.",
+                               "Your video is rendering in the cloud. You'll get a notification; it shows up in Routes and Summary."))
+                            .font(.caption2).foregroundStyle(Brand.accent)
+                    }
+                    Text(L("Video bulut sunucularında oluşturulur — telefonun yorulmaz, uygulamayı kapatabilirsin.",
+                           "Rendered on our cloud servers — your phone stays free; you can close the app."))
                         .font(.caption2).foregroundStyle(.secondary)
                 }.padding(24)
-            }
-            if sending {   // RENDER SIRASINDA NET UYARI — uygulamayı kapatma/değiştirme
-                Color.black.opacity(0.85).ignoresSafeArea()
-                VStack(spacing: 18) {
-                    ProgressView().scaleEffect(1.5).tint(.white)
-                    Text(L("Video hazırlanıyor   %\(Int(renderPct*100))", "Rendering   \(Int(renderPct*100))%"))
-                        .font(.title3.bold()).foregroundStyle(.white)
-                    Label(L("UYGULAMAYI KAPATMA, BAŞKA UYGULAMAYA GEÇME", "DON'T CLOSE OR SWITCH APPS"),
-                          systemImage: "exclamationmark.triangle.fill")
-                        .font(.headline.bold()).foregroundStyle(.yellow)
-                        .multilineTextAlignment(.center).padding(.horizontal, 26)
-                    Text(L("Video telefonunda oluşturuluyor; ekran açık ve uygulama önde kalmalı. Kapatırsan iptal olur.",
-                           "Rendering on your device; keep the app open and in the foreground or it cancels."))
-                        .font(.footnote).foregroundStyle(.white.opacity(0.85))
-                        .multilineTextAlignment(.center).padding(.horizontal, 30)
-                }.padding(34)
             }
         }
         .presentationDetents([.large])
