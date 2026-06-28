@@ -1,6 +1,49 @@
 import SwiftUI
 import AVKit
+import AVFoundation
 import UIKit
+
+// Video önizleme (poster): videodan bir kare çıkarıp gösterir; bellek cache'i (kaydırınca yeniden üretmez).
+enum ThumbCache { static var imgs: [String: UIImage] = [:] }
+
+struct VideoThumb: View {
+    let id: String
+    let url: URL
+    let icon: String
+    @State private var img: UIImage?
+    var body: some View {
+        ZStack {
+            if let img {
+                Image(uiImage: img).resizable().scaledToFill()
+            } else {
+                Brand.gradient.opacity(0.18)
+                Image(systemName: icon).font(.system(size: 30)).foregroundStyle(Brand.accent.opacity(0.5))
+            }
+            Image(systemName: "play.circle.fill").font(.system(size: 52))
+                .foregroundStyle(.white.opacity(0.95)).shadow(radius: 8)
+        }
+        .frame(height: 150).frame(maxWidth: .infinity)
+        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .task(id: id) { await load() }
+    }
+    func load() async {
+        if let c = ThumbCache.imgs[id] { img = c; return }
+        if img != nil { return }
+        let asset = AVURLAsset(url: url)
+        let gen = AVAssetImageGenerator(asset: asset)
+        gen.appliesPreferredTrackTransform = true
+        gen.requestedTimeToleranceBefore = .positiveInfinity
+        gen.requestedTimeToleranceAfter = .positiveInfinity
+        gen.maximumSize = CGSize(width: 720, height: 1280)
+        let t = CMTime(seconds: 1.2, preferredTimescale: 600)
+        if let cg = try? await gen.image(at: t).image {
+            let ui = UIImage(cgImage: cg)
+            ThumbCache.imgs[id] = ui
+            await MainActor.run { img = ui }
+        }
+    }
+}
 
 // "Videolarım" sekmesi: üretilen TÜM videolar burada listelenir.
 // Kullanıcı izleyebilir, galerisine tekrar kaydedebilir veya geçmişten silebilir.
@@ -47,17 +90,9 @@ struct VideosView: View {
                         }
                         ForEach(rides) { r in
                             VStack(spacing: 0) {
-                                // büyük izleme kartı
+                                // büyük izleme kartı — gerçek video karesinden önizleme
                                 Button { play(r) } label: {
-                                    ZStack {
-                                        Brand.gradient.opacity(0.18)
-                                        Image(systemName: typeIcon(r.type)).font(.system(size: 30))
-                                            .foregroundStyle(Brand.accent.opacity(0.5))
-                                        Image(systemName: "play.circle.fill").font(.system(size: 52))
-                                            .foregroundStyle(.white.opacity(0.95)).shadow(radius: 8)
-                                    }
-                                    .frame(height: 150).frame(maxWidth: .infinity)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                    VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type))
                                 }.buttonStyle(.plain)
 
                                 HStack(spacing: 12) {
@@ -89,7 +124,7 @@ struct VideosView: View {
             }
             .navigationTitle(L("Videolarım","My Videos"))
         }
-        .task { rides = await store.rides(); loaded = true }
+        .onAppear { Task { rides = await store.rides(); loaded = true } }   // sekmeye her gelişte tazele (yeni video hemen görünsün)
         .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
                             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             presenting: pendingDelete) { r in
