@@ -35,6 +35,7 @@ struct GenerateSheet: View {
     @State private var stock: [[String:String]] = []
     @State private var music = ""               // "", "stock:<id>", "upload"
     @State private var showAudioPicker = false
+    @AppStorage("nd_line_color") private var lineColor = "#00E5FF"   // kullanıcının seçtiği rota çizgi rengi
 
     init(from: Double, to: Double, type: String, mode: String = "flat",
          aspect: String = "16:9", speed: String = "medium", rideId: String? = nil) {
@@ -80,6 +81,18 @@ struct GenerateSheet: View {
                         Text("16:9").tag("16:9"); Text("9:16").tag("9:16")
                     }.pickerStyle(.segmented)
 
+                    field(L("Rota rengi","Route color"))
+                    HStack(spacing: 12) {
+                        ForEach(["#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00"], id: \.self) { hex in
+                            Circle().fill(Color(hex: hex))
+                                .frame(width: 30, height: 30)
+                                .overlay(Circle().strokeBorder(.white.opacity(0.3), lineWidth: 1))
+                                .overlay(Circle().strokeBorder(.white, lineWidth: lineColor.caseInsensitiveCompare(hex) == .orderedSame ? 3 : 0))
+                                .onTapGesture { lineColor = hex }
+                        }
+                        Spacer()
+                    }
+
                     field(L("Müzik","Music"))
                     Menu {
                         Button(L("Yok","None")) { music = "" }
@@ -115,9 +128,9 @@ struct GenerateSheet: View {
                             // Telefon yorulmaz, uygulama kapatılabilir (sıfır cihaz yükü).
                             let ok = rideId == nil
                                 ? await store.generateRide(from: from, to: to, type: type, mode: mode,
-                                                           aspect: aspect, premium: premium, speed: speed, music: music)
+                                                           aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor)
                                 : await store.regenerateRide(rideId!, type: type, mode: mode,
-                                                             aspect: aspect, premium: premium, speed: speed, music: music)
+                                                             aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor)
                             sending = false; done = ok; localErr = !ok
                             if ok { try? await Task.sleep(for: .seconds(1.8)); dismiss() }
                         }
