@@ -437,6 +437,28 @@ struct PaywallSheet: View {
                     if premium {
                         Text(L("Premium aktif","Premium active")).font(.caption.bold()).foregroundStyle(.white)
                             .padding(.horizontal, 14).padding(.vertical, 7).background(Brand.gradient, in: Capsule()).padding(.top, 2)
+
+                        // Günlük 2x Boost (consumable) — premium üyeye, rotasız erişilebilir satın alma
+                        if let b = iap.boost {
+                            Button {
+                                Task { _ = await iap.buyBoost() }
+                            } label: {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "bolt.fill").foregroundStyle(.yellow)
+                                    VStack(alignment: .leading, spacing: 1) {
+                                        Text(L("Günlük 2× Boost","Daily 2× Boost")).font(.subheadline.weight(.semibold))
+                                        Text(L("Bugünün video limitini 2 katına çıkar","Double today's video limit"))
+                                            .font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                    if iap.boostWorking { ProgressView() } else { Text(b.displayPrice).font(.subheadline.bold()) }
+                                }.padding(.horizontal, 14).padding(.vertical, 12)
+                            }.buttonStyle(.plain).glassPanel(14).tint(.primary).disabled(iap.boostWorking).padding(.top, 6)
+                            if let m = iap.boostMsg {
+                                Text(m).font(.caption2).foregroundStyle(Brand.accent)
+                            }
+                        }
+
                         Link(L("Aboneliği yönet","Manage subscription"),
                              destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
                             .font(.footnote).tint(Brand.accent).padding(.top, 6)
