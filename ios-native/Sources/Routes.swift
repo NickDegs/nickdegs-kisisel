@@ -118,7 +118,8 @@ struct RoutesView: View {
             _ = try? await asset.load(.isPlayable)          // ilk kare hazır olana kadar bekle (kara kare olmaz)
             let item = AVPlayerItem(asset: asset)
             let p = AVPlayer(playerItem: item)
-            p.automaticallyWaitsToMinimizeStalling = false
+            // true: R2 stream'i yeterince tamponlayıp pürüzsüz başlat (false iken ilk saniyede duraklıyordu)
+            p.automaticallyWaitsToMinimizeStalling = true
             await MainActor.run { playerBox = PlayerBox(player: p) }   // sheet(item:) ile player garanti hazır
         }
     }

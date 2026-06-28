@@ -147,7 +147,9 @@ struct VideosView: View {
                                    options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
             _ = try? await asset.load(.isPlayable)
             let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
-            p.automaticallyWaitsToMinimizeStalling = false
+            // true: R2 stream'i yeterince tamponlayıp pürüzsüz başlat (false iken ilk saniyede
+            // buffer bitip duraklıyor, kullanıcı elle devam ettirmek zorunda kalıyordu).
+            p.automaticallyWaitsToMinimizeStalling = true
             await MainActor.run { playerBox = PlayerBox(player: p) }
         }
     }
