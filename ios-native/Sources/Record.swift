@@ -33,6 +33,7 @@ struct GenerateSheet: View {
     @State private var renderPct: Double = 0
     @State private var localErr = false
     @State private var showPaywall = false
+    @AppStorage("nd_camdist") private var camdist = "orta"   // kamera mesafesi yakın/orta/uzak (premium)
     @State private var stock: [[String:String]] = []
     @State private var music = ""               // "", "stock:<id>", "upload"
     @State private var showAudioPicker = false
@@ -78,6 +79,22 @@ struct GenerateSheet: View {
                          : L("Kısa ≈15sn, Orta ≈30sn, Uzun rotaya göre (max 60sn). Süre rota uzunluğuna göre ölçeklenir.",
                              "Short ≈15s, Medium ≈30s, Long scales with distance (max 60s)."))
                         .font(.caption2).foregroundStyle(speed == "auto" ? Brand.accent : .secondary)
+
+                    // KAMERA MESAFESİ (premium, her video): kameranın rotaya yakınlığı.
+                    field(L("Kamera mesafesi","Camera distance"))
+                    Picker("", selection: Binding(
+                        get: { premium ? camdist : "orta" },
+                        set: { v in if premium { camdist = v } else { showPaywall = true } })) {
+                        Text(L("Yakın","Near")).tag("yakin")
+                        Text(L("Orta","Medium")).tag("orta")
+                        Text(L("Uzak","Far")).tag("uzak")
+                    }.pickerStyle(.segmented)
+                    Text(premium
+                         ? L("Kameranın rotaya yakınlığı: Yakın daha yakın çekim, Uzak daha geniş kadraj.",
+                             "How close the camera follows: Near = tighter shot, Far = wider framing.")
+                         : L("Kamera mesafesi Premium ile seçilebilir.",
+                             "Camera distance is a Premium option."))
+                        .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)
 
                     field(L("Görünüm","Style"))
                     modeRow("flat", L("Düz","Flat"), free: true)
@@ -136,9 +153,9 @@ struct GenerateSheet: View {
                             // Telefon yorulmaz, uygulama kapatılabilir (sıfır cihaz yükü).
                             let ok = rideId == nil
                                 ? await store.generateRide(from: from, to: to, type: type, mode: mode,
-                                                           aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor)
+                                                           aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist)
                                 : await store.regenerateRide(rideId!, type: type, mode: mode,
-                                                             aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor)
+                                                             aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist)
                             sending = false; done = ok; localErr = !ok
                             // başarılı -> Videolarım'a geç + sheet kapat; video orada "Hazırlanıyor" kilitli görünür
                             if ok { store.jumpToVideos = true; try? await Task.sleep(for: .seconds(1.2)); dismiss() }
