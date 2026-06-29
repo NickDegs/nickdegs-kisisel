@@ -13,6 +13,27 @@ struct RoutesView: View {
     @State private var savingId: String? = nil
     @State private var savedId: String? = nil
     @State private var pendingDelete: Ride?
+    @State private var pollTask: Task<Void, Never>? = nil   // render/yeni rota varken otomatik yenile
+
+    // Listeyi tazele: yeni (oto-algılanan) sürüşler + biten render'lar hemen görünsün.
+    func reload() async {
+        let fresh = await store.rides()
+        await MainActor.run { rides = fresh; managePoll() }
+    }
+    // Hâlâ render olan kayıt varsa 12 sn'de bir tazele -> bitince "Hazırlanıyor" açılır.
+    func managePoll() {
+        let anyRendering = rides.contains { $0.rendering == true }
+        if anyRendering, pollTask == nil {
+            pollTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(12))
+                    await reload()
+                }
+            }
+        } else if !anyRendering {
+            pollTask?.cancel(); pollTask = nil
+        }
+    }
 
     // Gün + saat: "11 Haz 2026 · 14:30" (kim hangi gün ne yapmış görünsün)
     func dayTime(_ r: Ride) -> String {
@@ -86,10 +107,12 @@ struct RoutesView: View {
                         }
                     }.padding(16)
                 }
+                .refreshable { await reload() }
             }
             .navigationTitle("Move Log")
         }
-        .task { rides = await store.rides() }
+        .onAppear { Task { await reload() } }      // sekmeye her gelişte tazele (yeni oto-rota hemen görünsün)
+        .onDisappear { pollTask?.cancel(); pollTask = nil }
         .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
                             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             presenting: pendingDelete) { r in
