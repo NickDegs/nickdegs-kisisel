@@ -63,14 +63,21 @@ struct GenerateSheet: View {
                     }.pickerStyle(.menu).tint(Brand.accent)
 
                     field(L("Süre","Length"))
-                    Picker("", selection: $speed) {
+                    // Otonom = PREMIUM: süre tamamen rotaya göre, max 3dk (günde 1). Free seçince paywall.
+                    Picker("", selection: Binding(
+                        get: { speed },
+                        set: { v in if v == "auto" && !premium { showPaywall = true } else { speed = v } })) {
                         Text(L("Kısa","Short")).tag("fast")
                         Text(L("Orta","Medium")).tag("medium")
                         Text(L("Uzun","Long")).tag("slow")
+                        Text(premium ? L("Otonom","Auto") : L("Otonom 🔒","Auto 🔒")).tag("auto")
                     }.pickerStyle(.segmented)
-                    Text(L("Kısa ≈15sn, Orta ≈30sn, Uzun rotaya göre (max 60sn). Süre rota uzunluğuna göre ölçeklenir.",
-                           "Short ≈15s, Medium ≈30s, Long scales with distance (max 60s)."))
-                        .font(.caption2).foregroundStyle(.secondary)
+                    Text(speed == "auto"
+                         ? L("Otonom: süre TAMAMEN rotaya göre ayarlanır (max 3 dk). Şehir yolculukları için ideal. Premium, günde 1.",
+                             "Auto: length fully scales with your route (max 3 min). Great for city trips. Premium, once a day.")
+                         : L("Kısa ≈15sn, Orta ≈30sn, Uzun rotaya göre (max 60sn). Süre rota uzunluğuna göre ölçeklenir.",
+                             "Short ≈15s, Medium ≈30s, Long scales with distance (max 60s)."))
+                        .font(.caption2).foregroundStyle(speed == "auto" ? Brand.accent : .secondary)
 
                     field(L("Görünüm","Style"))
                     modeRow("flat", L("Düz","Flat"), free: true)
