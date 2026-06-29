@@ -8,6 +8,8 @@ struct Avatar: Codable, Hashable { var type: String = "initials"; var value: Str
 struct Ride: Codable, Identifiable, Hashable {
     var id: String; var date: String; var type: String?; var mode: String?; var size: Double
     var ts: Double? = nil; var to: Double? = nil; var aspect: String? = nil; var speed: String? = nil
+    var done: Double? = nil          // video ÜRETIM zamanı (epoch) — Videolarım'da gösterilir + sıralama
+    var rendering: Bool? = nil       // hâlâ render oluyor mu — true ise app oynatmayı kilitler ("Hazırlanıyor")
 }
 struct Stats: Codable { var totalRides: Int; var byType: [String:Int]; var latest: Ride? }
 struct Position: Codable, Identifiable, Hashable {
@@ -37,6 +39,7 @@ struct Convo: Codable, Identifiable, Hashable {
     @Published var token: String = UserDefaults.standard.string(forKey: "nd_token") ?? ""
     @Published var me: String = ""
     @Published var loginError = false
+    @Published var jumpToVideos = false   // "Video oluştur" sonrası Videolarım sekmesine geç ("Hazırlanıyor" görünür)
     var loggedIn: Bool { !token.isEmpty || (AppEnv.demo && AppEnv.screen != "hero") }
     init() { if AppEnv.demo && AppEnv.screen != "hero" { me = "me" } }
 

@@ -133,7 +133,8 @@ struct GenerateSheet: View {
                                 : await store.regenerateRide(rideId!, type: type, mode: mode,
                                                              aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor)
                             sending = false; done = ok; localErr = !ok
-                            if ok { try? await Task.sleep(for: .seconds(1.8)); dismiss() }
+                            // başarılı -> Videolarım'a geç + sheet kapat; video orada "Hazırlanıyor" kilitli görünür
+                            if ok { store.jumpToVideos = true; try? await Task.sleep(for: .seconds(1.2)); dismiss() }
                         }
                     } label: {
                         if sending { HStack(spacing: 8) { ProgressView()

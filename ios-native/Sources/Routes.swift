@@ -112,16 +112,12 @@ struct RoutesView: View {
     }
 
     func play(_ r: Ride) {
-        Task {
-            let asset = AVURLAsset(url: store.videoURL(r.id),
-                                   options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
-            _ = try? await asset.load(.isPlayable)          // ilk kare hazır olana kadar bekle (kara kare olmaz)
-            let item = AVPlayerItem(asset: asset)
-            let p = AVPlayer(playerItem: item)
-            // true: R2 stream'i yeterince tamponlayıp pürüzsüz başlat (false iken ilk saniyede duraklıyordu)
-            p.automaticallyWaitsToMinimizeStalling = true
-            await MainActor.run { playerBox = PlayerBox(player: p) }   // sheet(item:) ile player garanti hazır
-        }
+        // sheet'i HEMEN aç (bloklayan await yok -> dokununca anında tepki). Player kendi yükler/tamponlar.
+        let asset = AVURLAsset(url: store.videoURL(r.id),
+                               options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+        let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+        p.automaticallyWaitsToMinimizeStalling = true   // R2 stream'i tamponlayıp pürüzsüz başlat
+        playerBox = PlayerBox(player: p)                // anında sheet aç
     }
 
     func save(_ r: Ride) {

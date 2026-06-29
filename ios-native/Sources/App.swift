@@ -40,11 +40,15 @@ struct RootView: View {
     var body: some View {
         TabView(selection: $sel) {
             RoutesView().tabItem { Label(L("Rotalar","Routes"), systemImage: "map") }.tag(0)
+            // not: aşağıda .onChange ile "Video oluştur" sonrası otomatik Videolarım'a geçilir
             VideosView().tabItem { Label(L("Videolarım","My Videos"), systemImage: "film.stack") }.tag(1)
             ChatListView().tabItem { Label(L("Sohbet","Chat"), systemImage: "bubble.left.and.bubble.right") }.tag(2)
             MapTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(3)
             SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(4)
             ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(5)
+        }
+        .onChange(of: store.jumpToVideos) { _, v in
+            if v { sel = 1; store.jumpToVideos = false }   // "Video oluştur" -> Videolarım'a geç ("Hazırlanıyor" görünür)
         }
         // iOS 26'da TabView otomatik Liquid Glass tab bar kullanır.
         .safeAreaInset(edge: .top) {

@@ -58,6 +58,7 @@ struct VideosView: View {
     @State private var savedId: String? = nil
     @State private var pendingDelete: Ride?
     @State private var loaded = false
+    @State private var pollTask: Task<Void, Never>? = nil   // render olan varken otomatik yenile
 
     func dayTime(_ r: Ride) -> String {
         guard let ts = r.ts, ts > 0 else { return r.date }
@@ -65,6 +66,34 @@ struct VideosView: View {
         f.locale = Locale(identifier: L("tr_TR", "en_US"))
         f.dateFormat = L("d MMM yyyy · HH:mm", "MMM d, yyyy · HH:mm")
         return f.string(from: Date(timeIntervalSince1970: ts))
+    }
+    // video ÜRETIM tarihi (done) — sürüş tarihinin yanında gösterilir
+    func producedLabel(_ r: Ride) -> String? {
+        guard let d = r.done, d > 0 else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: L("tr_TR", "en_US"))
+        f.dateFormat = L("d MMM HH:mm", "MMM d, HH:mm")
+        return f.string(from: Date(timeIntervalSince1970: d))
+    }
+    // sıralama: render olanlar en üstte, sonra ÜRETIM zamanına göre yeni->eski (yeni video hemen görünür)
+    func sortKey(_ r: Ride) -> Double { r.rendering == true ? .greatestFiniteMagnitude : (r.done ?? r.ts ?? 0) }
+    func reload() async {
+        let sorted = (await store.rides()).sorted { sortKey($0) > sortKey($1) }
+        await MainActor.run { rides = sorted; loaded = true; managePoll() }
+    }
+    // render olan video varsa 12 sn'de bir tazele -> bitince kilidi açılıp önizleme gelir
+    func managePoll() {
+        let anyRendering = rides.contains { $0.rendering == true }
+        if anyRendering, pollTask == nil {
+            pollTask = Task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(for: .seconds(12))
+                    await reload()
+                }
+            }
+        } else if !anyRendering {
+            pollTask?.cancel(); pollTask = nil
+        }
     }
     func typeLabel(_ t: String?) -> String {
         switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
@@ -91,26 +120,49 @@ struct VideosView: View {
                             }.padding(.top, 70).padding(.horizontal, 26)
                         }
                         ForEach(rides) { r in
+                            let rendering = (r.rendering == true)
                             VStack(spacing: 0) {
-                                // büyük izleme kartı — gerçek video karesinden önizleme
-                                Button { play(r) } label: {
-                                    VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type), headers: store.authHeader)
-                                }.buttonStyle(.plain)
+                                // büyük izleme kartı — render bitene kadar KİLİTLİ (oynatma yok, beyaz ekran olmaz)
+                                if rendering {
+                                    ZStack {
+                                        Brand.gradient.opacity(0.18)
+                                        VStack(spacing: 8) {
+                                            ProgressView().tint(.white)
+                                            Text(L("Hazırlanıyor…","Rendering…")).font(.system(size: 14, weight: .semibold))
+                                                .foregroundStyle(.white.opacity(0.9))
+                                        }
+                                    }
+                                    .frame(height: 150).frame(maxWidth: .infinity).clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                } else {
+                                    Button { play(r) } label: {
+                                        VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type), headers: store.authHeader)
+                                    }.buttonStyle(.plain)
+                                }
 
                                 HStack(spacing: 12) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(dayTime(r)).font(.system(size: 15, weight: .semibold))
+                                        Text(dayTime(r)).font(.system(size: 15, weight: .semibold))     // sürüş tarihi
                                         Text(typeLabel(r.type)).font(.caption).foregroundStyle(.secondary)
+                                        if rendering {
+                                            Text(L("Video hazırlanıyor, bitince izlenebilir","Rendering, playable when done"))
+                                                .font(.caption2).foregroundStyle(Brand.accent)
+                                        } else if let pl = producedLabel(r) {
+                                            Text(L("Üretildi: ","Created: ") + pl)                      // VIDEO üretim tarihi
+                                                .font(.caption2).foregroundStyle(.secondary.opacity(0.8))
+                                        }
                                     }
                                     Spacer()
-                                    // galerine kaydet
-                                    Button { save(r) } label: {
-                                        Group {
-                                            if savingId == r.id { ProgressView() }
-                                            else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
-                                            else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
-                                        }.font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).glassPanel(21)
-                                    }.buttonStyle(.plain).disabled(savingId == r.id)
+                                    if !rendering {
+                                        // galerine kaydet
+                                        Button { save(r) } label: {
+                                            Group {
+                                                if savingId == r.id { ProgressView() }
+                                                else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
+                                                else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
+                                            }.font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).glassPanel(21)
+                                        }.buttonStyle(.plain).disabled(savingId == r.id)
+                                    }
                                     // sil
                                     Button { pendingDelete = r } label: {
                                         Image(systemName: "trash").font(.system(size: 16, weight: .semibold))
@@ -122,16 +174,17 @@ struct VideosView: View {
                         }
                     }.padding(16)
                 }
-                .refreshable { rides = await store.rides() }
+                .refreshable { await reload() }
             }
             .navigationTitle(L("Videolarım","My Videos"))
         }
-        .onAppear { Task { rides = await store.rides(); loaded = true } }   // sekmeye her gelişte tazele (yeni video hemen görünsün)
+        .onAppear { Task { await reload() } }   // sekmeye her gelişte tazele (yeni video hemen görünsün)
+        .onDisappear { pollTask?.cancel(); pollTask = nil }
         .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
                             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             presenting: pendingDelete) { r in
             Button(L("Sil", "Delete"), role: .destructive) {
-                Task { if await store.deleteRide(r.id) { rides = await store.rides() }; pendingDelete = nil }
+                Task { _ = await store.deleteRide(r.id); await reload(); pendingDelete = nil }
             }
             Button(L("Vazgeç", "Cancel"), role: .cancel) { pendingDelete = nil }
         }
@@ -141,17 +194,13 @@ struct VideosView: View {
         }
     }
 
+    // Oynat: sheet'i HEMEN aç (bloklayan await yok -> dokununca anında tepki). Player kendi yükler/tamponlar.
     func play(_ r: Ride) {
-        Task {
-            let asset = AVURLAsset(url: store.videoURL(r.id),
-                                   options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
-            _ = try? await asset.load(.isPlayable)
-            let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
-            // true: R2 stream'i yeterince tamponlayıp pürüzsüz başlat (false iken ilk saniyede
-            // buffer bitip duraklıyor, kullanıcı elle devam ettirmek zorunda kalıyordu).
-            p.automaticallyWaitsToMinimizeStalling = true
-            await MainActor.run { playerBox = PlayerBox(player: p) }
-        }
+        let asset = AVURLAsset(url: store.videoURL(r.id),
+                               options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+        let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+        p.automaticallyWaitsToMinimizeStalling = true   // R2 stream'i tamponlayıp pürüzsüz başlat
+        playerBox = PlayerBox(player: p)                 // anında sheet aç
     }
 
     func save(_ r: Ride) {
