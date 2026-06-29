@@ -10,6 +10,7 @@ struct RoutesView: View {
     @State private var rides: [Ride] = []
     @State private var playerBox: PlayerBox?
     @State private var editRide: Ride?
+    @State private var createRide: Ride?   // videosuz rota -> "Video oluştur" (sıfırdan üretim)
     @State private var savingId: String? = nil
     @State private var savedId: String? = nil
     @State private var pendingDelete: Ride?
@@ -44,11 +45,12 @@ struct RoutesView: View {
         return f.string(from: Date(timeIntervalSince1970: ts))
     }
     func typeLabel(_ t: String?) -> String {
-        switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
+        switch t { case "moto": return L("Motosiklet","Motorcycle"); case "car": return L("Araba","Car")
+        case "bike": return L("Bisiklet","Cycling")
         case "run": return L("Koşu","Running"); case "walk": return L("Yürüyüş","Walking"); default: return L("Diğer","Other") }
     }
     func typeIcon(_ t: String?) -> String {
-        switch t { case "moto": return "motorcycle"; case "bike": return "bicycle"
+        switch t { case "moto": return "motorcycle"; case "car": return "car.fill"; case "bike": return "bicycle"
         case "run": return "figure.run"; case "walk": return "figure.walk"; default: return "point.topleft.down.curvedto.point.bottomright.up" }
     }
 
@@ -78,25 +80,36 @@ struct RoutesView: View {
                                     }
                                 }
                                 Spacer()
-                                // İzle
-                                Button { play(r) } label: {
-                                    Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
-                                        .foregroundStyle(.white).frame(width: 42, height: 42)
-                                        .background(Brand.gradient, in: Circle())
-                                }.buttonStyle(.plain)
-                                // Düzenle (süre/görünüm/en-boy/müzik ile yeniden oluştur)
-                                Button { editRide = r } label: {
-                                    Image(systemName: "slider.horizontal.3").font(.system(size: 16, weight: .semibold))
-                                        .foregroundStyle(Brand.accent).frame(width: 42, height: 42).glassPanel(21)
-                                }.buttonStyle(.plain)
-                                // Kaydet (videoyu galeriye indir)
-                                Button { save(r) } label: {
-                                    Group {
-                                        if savingId == r.id { ProgressView() }
-                                        else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
-                                        else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
-                                    }.font(.system(size: 16, weight: .semibold)).frame(width: 42, height: 42).glassPanel(21)
-                                }.buttonStyle(.plain).disabled(savingId == r.id)
+                                if r.novideo == true {
+                                    // Videosuz algılanan rota -> kullanıcı isterse video ürettirir
+                                    Button { createRide = r } label: {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "film.stack").font(.system(size: 13, weight: .bold))
+                                            Text(L("Video oluştur","Create video")).font(.system(size: 13, weight: .semibold))
+                                        }.foregroundStyle(.white).padding(.horizontal, 14).frame(height: 42)
+                                            .background(Brand.gradient, in: Capsule())
+                                    }.buttonStyle(.borderless).contentShape(Rectangle())
+                                } else {
+                                    // İzle
+                                    Button { play(r) } label: {
+                                        Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                            .foregroundStyle(.white).frame(width: 42, height: 42)
+                                            .background(Brand.gradient, in: Circle())
+                                    }.buttonStyle(.borderless).contentShape(Rectangle())
+                                    // Düzenle (süre/görünüm/en-boy/müzik ile yeniden oluştur)
+                                    Button { editRide = r } label: {
+                                        Image(systemName: "slider.horizontal.3").font(.system(size: 16, weight: .semibold))
+                                            .foregroundStyle(Brand.accent).frame(width: 42, height: 42).glassPanel(21)
+                                    }.buttonStyle(.borderless).contentShape(Rectangle())
+                                    // Kaydet (videoyu galeriye indir)
+                                    Button { save(r) } label: {
+                                        Group {
+                                            if savingId == r.id { ProgressView() }
+                                            else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
+                                            else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
+                                        }.font(.system(size: 16, weight: .semibold)).frame(width: 42, height: 42).glassPanel(21)
+                                    }.buttonStyle(.borderless).contentShape(Rectangle()).disabled(savingId == r.id)
+                                }
                             }
                             .padding(14).glassPanel(20).smoothAppear()
                             .contextMenu {   // uzun bas → sil
@@ -131,6 +144,11 @@ struct RoutesView: View {
             GenerateSheet(from: r.ts ?? 0, to: r.to ?? 0, type: r.type ?? "moto",
                           mode: r.mode ?? "flat", aspect: r.aspect ?? "16:9",
                           speed: r.speed ?? "medium", rideId: r.id)
+        }
+        .sheet(item: $createRide) { r in   // videosuz rota -> sıfırdan üretim (rideId: nil)
+            GenerateSheet(from: r.ts ?? 0, to: r.to ?? 0, type: r.type ?? "moto",
+                          mode: "flat", aspect: r.aspect ?? "16:9",
+                          speed: r.speed ?? "medium", rideId: nil)
         }
     }
 

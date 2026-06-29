@@ -96,11 +96,12 @@ struct VideosView: View {
         }
     }
     func typeLabel(_ t: String?) -> String {
-        switch t { case "moto": return L("Motosiklet","Motorcycle"); case "bike": return L("Bisiklet","Cycling")
+        switch t { case "moto": return L("Motosiklet","Motorcycle"); case "car": return L("Araba","Car")
+        case "bike": return L("Bisiklet","Cycling")
         case "run": return L("Koşu","Running"); case "walk": return L("Yürüyüş","Walking"); default: return L("Diğer","Other") }
     }
     func typeIcon(_ t: String?) -> String {
-        switch t { case "moto": return "motorcycle"; case "bike": return "bicycle"
+        switch t { case "moto": return "motorcycle"; case "car": return "car.fill"; case "bike": return "bicycle"
         case "run": return "figure.run"; case "walk": return "figure.walk"; default: return "film" }
     }
 

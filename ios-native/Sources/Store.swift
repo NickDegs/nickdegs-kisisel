@@ -10,6 +10,7 @@ struct Ride: Codable, Identifiable, Hashable {
     var ts: Double? = nil; var to: Double? = nil; var aspect: String? = nil; var speed: String? = nil
     var done: Double? = nil          // video ÜRETIM zamanı (epoch) — Videolarım'da gösterilir + sıralama
     var rendering: Bool? = nil       // hâlâ render oluyor mu — true ise app oynatmayı kilitler ("Hazırlanıyor")
+    var novideo: Bool? = nil         // algılandı ama videosu yok -> Rotalar'da "Video oluştur" gösterilir
 }
 struct Stats: Codable { var totalRides: Int; var byType: [String:Int]; var latest: Ride? }
 struct Position: Codable, Identifiable, Hashable {
