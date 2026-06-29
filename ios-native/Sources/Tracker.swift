@@ -12,16 +12,38 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     private var ingestURL: String?
     private var lastSent: CLLocation?       // ışınlanma filtresi için son gönderilen konum
     private var lastLoc: CLLocation?        // en son geçerli konum (heartbeat için)
-    private var heartbeat: Timer?           // 15 sn'de bir zorunlu gönderim (boşluk/ışınlanma olmasın)
+    private var heartbeat: Timer?           // hassasiyete göre N sn'de bir zorunlu gönderim (boşluk olmasın)
+    private var hbInterval: TimeInterval = 15   // heartbeat aralığı (hassasiyete göre ayarlanır)
+
+    // ALGILAMA HASSASİYETİ -> (distanceFilter metre, heartbeat sn). Free=basit; premium 3'ünden seçer.
+    static func sensParams(_ s: String) -> (Double, TimeInterval) {
+        switch s {
+        case "hassas":  return (5, 5)     // en hassas: 5 sn'de bir, en yoğun iz
+        case "dengeli": return (12, 15)   // dengeli: ~15 sn, iyi algılama + makul pil
+        default:        return (30, 45)   // basit: ~45 sn, performanslı/pil dostu, daha kaba algılama
+        }
+    }
+    // Etkin hassasiyet: free HER ZAMAN basit; premium seçimini (default dengeli) kullanır.
+    func currentSensitivity() -> String {
+        let prem = UserDefaults.standard.bool(forKey: "nd_premium")
+        let stored = UserDefaults.standard.string(forKey: "nd_sensitivity") ?? "dengeli"
+        return prem ? stored : "basit"
+    }
+    // Ayarlardan değişince canlı uygula (premium).
+    func applySensitivity(_ s: String) {
+        UserDefaults.standard.set(s, forKey: "nd_sensitivity")
+        let (df, hb) = Tracker.sensParams(currentSensitivity())
+        mgr.distanceFilter = df; hbInterval = hb
+        if heartbeat != nil { startHeartbeat() }   // çalışıyorsa yeni aralıkla yeniden kur
+    }
 
     override init() {
         super.init()
         mgr.delegate = self
         mgr.desiredAccuracy = kCLLocationAccuracyBestForNavigation
-        // En detaylı rota: konum mesafe-tabanlı; 5 m'de bir gönder (hareket halinde
-        // BestForNavigation ~1 sn'de bir fix verir → motorda saniyenin altında nokta).
-        // 5 m, GPS titremesini (jitter) yakalamadan en yoğun temiz takip noktası.
-        mgr.distanceFilter = 5
+        // Konum aralığı ALGILAMA HASSASİYETİNE göre (Hassas/Dengeli/Basit). Free=basit, premium seçer.
+        let (df, hb) = Tracker.sensParams(currentSensitivity())
+        mgr.distanceFilter = df; hbInterval = hb
         // Sadece Info.plist UIBackgroundModes=location içeriyorsa aç (yoksa çökmesin)
         let modes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
         if modes.contains("location") { mgr.allowsBackgroundLocationUpdates = true }
@@ -51,8 +73,9 @@ final class Tracker: NSObject, ObservableObject, CLLocationManagerDelegate {
     private func startHeartbeat() {
         DispatchQueue.main.async {
             self.heartbeat?.invalidate()
-            self.heartbeat = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-                guard let self, let loc = self.lastLoc, loc.timestamp.timeIntervalSinceNow > -30 else { return }
+            let iv = self.hbInterval
+            self.heartbeat = Timer.scheduledTimer(withTimeInterval: iv, repeats: true) { [weak self] _ in
+                guard let self, let loc = self.lastLoc, loc.timestamp.timeIntervalSinceNow > -(iv*2) else { return }
                 self.sendLoc(loc, force: true)
             }
         }

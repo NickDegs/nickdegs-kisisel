@@ -29,6 +29,7 @@ struct ProfileView: View {
     @AppStorage("nd_font") var fontId = "default"
     @AppStorage("nd_scheme") var scheme = "dark"
     @AppStorage("nd_premium") var premium = false
+    @AppStorage("nd_sensitivity") var sensitivity = "dengeli"   // algılama hassasiyeti (premium seçer; free=basit)
     @State private var prof: Profile?
     @State private var friends: [Friend] = []
     @State private var stats: Stats?
@@ -147,6 +148,36 @@ struct ProfileView: View {
                             }
                         }.padding(14).glassPanel(18).tint(Brand.accent)
 
+                        // ALGILAMA HASSASİYETİ: Traccar sinyal aralığını kullanıcı dostu gizler.
+                        // Free=basit (kilitli); premium Hassas/Dengeli/Basit seçer.
+                        section(L("Algılama hassasiyeti","Detection sensitivity"))
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Label(L("Algılama hassasiyeti","Detection sensitivity"), systemImage: "dot.radiowaves.left.and.right")
+                                    .font(.system(size: 16, weight: .medium))
+                                if !premium { Image(systemName: "lock.fill").font(.caption2).foregroundStyle(.secondary) }
+                                Spacer()
+                            }
+                            Picker("", selection: Binding(
+                                get: { premium ? sensitivity : "basit" },
+                                set: { v in
+                                    if premium { sensitivity = v; tracker.applySensitivity(v) }
+                                    else { showPaywall = true }
+                                })) {
+                                Text(L("Hassas","High")).tag("hassas")
+                                Text(L("Dengeli","Balanced")).tag("dengeli")
+                                Text(L("Basit","Simple")).tag("basit")
+                            }.pickerStyle(.segmented).disabled(!premium)
+                            Text(sensDesc(premium ? sensitivity : "basit"))
+                                .font(.caption2).foregroundStyle(.secondary)
+                            if !premium {
+                                Text(L("Hassas ve Dengeli için Premium gerekir — daha hassas algılama + daha akıcı video.",
+                                       "High & Balanced need Premium — finer detection + smoother video."))
+                                    .font(.caption2).foregroundStyle(Brand.accent)
+                            }
+                        }.padding(14).glassPanel(18).tint(Brand.accent)
+                        .onTapGesture { if !premium { showPaywall = true } }
+
                         section(L("Günlük özet","Daily summary"))
                         VStack(spacing: 0) {
                             Toggle(isOn: Binding(
@@ -262,6 +293,16 @@ struct ProfileView: View {
     func section(_ t: String) -> some View {
         Text(t.uppercased()).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
+    }
+    func sensDesc(_ s: String) -> String {
+        switch s {
+        case "hassas":  return L("5 sn'de bir konum — en hassas algılama, en yoğun ve akıcı rota videosu (pil biraz daha çok).",
+                                 "Location every 5s — highest detection, densest/smoothest route (a bit more battery).")
+        case "dengeli": return L("~15 sn'de bir — dengeli: iyi algılama, makul pil.",
+                                 "~Every 15s — balanced: good detection, reasonable battery.")
+        default:        return L("~45 sn'de bir — en performanslı ve pil dostu, daha kaba algılama.",
+                                 "~Every 45s — most efficient/battery-friendly, coarser detection.")
+        }
     }
 }
 
