@@ -281,6 +281,15 @@ struct Convo: Codable, Identifiable, Hashable {
         return (o["ok"] as? Bool) ?? false
     }
     func videoURL(_ id: String) -> URL { URL(string: API + "/api/rides/\(id)/video")! }
+    // Presigned R2 URL'ini auth'lu al -> doğrudan (header'sız) oynat. Redirect'te Authorization R2'ye
+    // iletilip oynatmayı yarıda BEYAZA döndürme sorununu çözer. (Yerel yedekte /video path döner.)
+    func signedVideoURL(_ id: String) async -> URL? {
+        guard let d = try? await req("/api/rides/\(id)/videourl"),
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let s = o["url"] as? String else { return nil }
+        if s.hasPrefix("http") { return URL(string: s) }
+        return URL(string: API + s)
+    }
     var authHeader: [String:String] { ["Authorization": "Bearer " + token] }
 }
 

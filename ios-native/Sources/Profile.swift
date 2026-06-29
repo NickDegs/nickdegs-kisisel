@@ -127,8 +127,8 @@ struct ProfileView: View {
                                     Spacer()
                                     if fontId == f.id { Image(systemName: "checkmark").foregroundStyle(Brand.accent) }
                                     else if !f.free && !premium { Image(systemName: "lock.fill").foregroundStyle(.secondary) }
-                                }.padding(.horizontal, 16).padding(.vertical, 14)
-                            }.buttonStyle(.plain).glassPanel(16).smoothAppear()
+                                }.padding(.horizontal, 16).padding(.vertical, 14).contentShape(Rectangle())
+                            }.buttonStyle(.borderless).glassPanel(16)
                             .animation(.snappy(duration: 0.3), value: fontId)
                         }
 

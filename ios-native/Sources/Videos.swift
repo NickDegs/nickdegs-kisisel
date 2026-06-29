@@ -137,7 +137,8 @@ struct VideosView: View {
                                 } else {
                                     Button { play(r) } label: {
                                         VideoThumb(id: r.id, url: store.videoURL(r.id), icon: typeIcon(r.type), headers: store.authHeader)
-                                    }.buttonStyle(.plain)
+                                            .contentShape(Rectangle())
+                                    }.buttonStyle(.borderless)
                                 }
 
                                 HStack(spacing: 12) {
@@ -160,14 +161,14 @@ struct VideosView: View {
                                                 if savingId == r.id { ProgressView() }
                                                 else if savedId == r.id { Image(systemName: "checkmark").foregroundStyle(.green) }
                                                 else { Image(systemName: "square.and.arrow.down").foregroundStyle(Brand.accent) }
-                                            }.font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).glassPanel(21)
-                                        }.buttonStyle(.plain).disabled(savingId == r.id)
+                                            }.font(.system(size: 17, weight: .semibold)).frame(width: 44, height: 44).contentShape(Rectangle()).glassPanel(21)
+                                        }.buttonStyle(.borderless).disabled(savingId == r.id)
                                     }
-                                    // sil
+                                    // sil (borderless = bağımsız tıklama alanı; yoksa tap play'e gidiyordu)
                                     Button { pendingDelete = r } label: {
                                         Image(systemName: "trash").font(.system(size: 16, weight: .semibold))
-                                            .foregroundStyle(.red).frame(width: 44, height: 44).glassPanel(21)
-                                    }.buttonStyle(.plain)
+                                            .foregroundStyle(.red).frame(width: 44, height: 44).contentShape(Rectangle()).glassPanel(21)
+                                    }.buttonStyle(.borderless)
                                 }.padding(.top, 10)
                             }
                             .padding(12).glassPanel(22).smoothAppear()
@@ -194,13 +195,20 @@ struct VideosView: View {
         }
     }
 
-    // Oynat: sheet'i HEMEN aç (bloklayan await yok -> dokununca anında tepki). Player kendi yükler/tamponlar.
+    // Oynat: presigned R2 URL'ini al (hızlı), header'SIZ oynat -> beyaz ekran/yarıda kesilme olmaz.
     func play(_ r: Ride) {
-        let asset = AVURLAsset(url: store.videoURL(r.id),
-                               options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
-        let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
-        p.automaticallyWaitsToMinimizeStalling = true   // R2 stream'i tamponlayıp pürüzsüz başlat
-        playerBox = PlayerBox(player: p)                 // anında sheet aç
+        Task {
+            let signed = await store.signedVideoURL(r.id)
+            let asset: AVURLAsset
+            if let u = signed, u.absoluteString.hasPrefix("http"), !u.absoluteString.contains("/api/") {
+                asset = AVURLAsset(url: u)   // presigned R2 -> Authorization header YOK (dual-auth yok)
+            } else {
+                asset = AVURLAsset(url: store.videoURL(r.id), options: ["AVURLAssetHTTPHeaderFieldsKey": store.authHeader])
+            }
+            let p = AVPlayer(playerItem: AVPlayerItem(asset: asset))
+            p.automaticallyWaitsToMinimizeStalling = true
+            await MainActor.run { playerBox = PlayerBox(player: p) }
+        }
     }
 
     func save(_ r: Ride) {
