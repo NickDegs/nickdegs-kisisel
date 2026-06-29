@@ -68,8 +68,8 @@ struct GenerateSheet: View {
                         Text(L("Orta","Medium")).tag("medium")
                         Text(L("Uzun","Long")).tag("slow")
                     }.pickerStyle(.segmented)
-                    Text(L("Kısa ≈15sn, Orta ≈40sn, Uzun ≈60sn (rota uzunluğuna göre).",
-                           "Short ≈15s, Medium ≈40s, Long ≈60s (scales with route length)."))
+                    Text(L("Kısa ≈15sn, Orta ≈30sn, Uzun rotaya göre (max 60sn). Süre rota uzunluğuna göre ölçeklenir.",
+                           "Short ≈15s, Medium ≈30s, Long scales with distance (max 60s)."))
                         .font(.caption2).foregroundStyle(.secondary)
 
                     field(L("Görünüm","Style"))
