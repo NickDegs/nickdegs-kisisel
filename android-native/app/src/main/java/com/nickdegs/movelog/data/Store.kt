@@ -117,4 +117,18 @@ class Store(app: Application) : AndroidViewModel(app) {
 
     suspend fun deleteRide(id: String): Boolean =
         req("/api/rides/$id", "DELETE") != null
+
+    // ---- Özetler (Özet sekmesi; iOS /api/activities) ----
+    suspend fun summaries(): List<Summary> {
+        val d = req("/api/activities") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("activities") ?: JSONArray()
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Summary(o.optString("date", ""), o.optString("summary", ""),
+                if (o.isNull("video_id")) null else o.optString("video_id", null))
+        }
+    }
+    suspend fun summarizeToday(): Boolean = req("/api/activities/summarize", "POST", JSONObject()) != null
 }
+
+data class Summary(val date: String, val summary: String, val videoId: String?)

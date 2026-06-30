@@ -52,9 +52,9 @@ fun MoveLogApp(store: Store) {
         Box(Modifier.padding(pad).fillMaxSize()) {
             when (sel) {
                 0 -> RoutesScreen(store)
-                1 -> PlaceholderScreen(L("Videolarım", "My Videos"))
-                2 -> PlaceholderScreen(L("Özet", "Summary"))
-                3 -> PlaceholderScreen(L("Harita", "Map"))
+                1 -> VideosScreen(store)
+                2 -> SummariesScreen(store)
+                3 -> PlaceholderScreen(L("Harita + Sohbet", "Map + Chat"))
                 else -> ProfileScreen(store)
             }
         }
