@@ -36,13 +36,13 @@ class Store(app: Application) : AndroidViewModel(app) {
 
     val loggedIn: Boolean get() = token.isNotEmpty()
 
-    private fun setToken(t: String) {
+    private fun persistToken(t: String) {
         token = t; prefs.edit().putString("nd_token", t).apply()
     }
-    fun setPremium(v: Boolean) {
+    fun persistPremium(v: Boolean) {
         premium = v; prefs.edit().putBoolean("nd_premium", v).apply()
     }
-    fun signOut() { setToken(""); prefs.edit().remove("nd_token").apply() }
+    fun signOut() { persistToken(""); prefs.edit().remove("nd_token").apply() }
 
     // ---- HTTP yardımcısı (auth header + JSON) ----
     private suspend fun req(path: String, method: String = "GET", body: JSONObject? = null): String? =
@@ -73,7 +73,7 @@ class Store(app: Application) : AndroidViewModel(app) {
             JSONObject().put("phone", phone).put("code", code)) ?: run { loginError = true; return false }
         val t = JSONObject(d).optString("token", "")
         if (t.isEmpty()) { loginError = true; return false }
-        setToken(t); loginError = false
+        persistToken(t); loginError = false
         loadProfile()
         return true
     }
@@ -83,7 +83,7 @@ class Store(app: Application) : AndroidViewModel(app) {
         val d = req("/api/me") ?: return
         val o = JSONObject(d)
         me = o.optString("username", me)
-        setPremium(o.optBoolean("premium", premium))
+        persistPremium(o.optBoolean("premium", premium))
     }
 
     // ---- Rotalar ----
