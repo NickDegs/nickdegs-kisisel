@@ -54,7 +54,7 @@ fun MoveLogApp(store: Store) {
                 0 -> RoutesScreen(store)
                 1 -> VideosScreen(store)
                 2 -> SummariesScreen(store)
-                3 -> PlaceholderScreen(L("Harita + Sohbet", "Map + Chat"))
+                3 -> MapChatScreen(store)
                 else -> ProfileScreen(store)
             }
         }
