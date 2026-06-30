@@ -173,6 +173,27 @@ class Store(app: Application) : AndroidViewModel(app) {
         return JSONObject(d).optBoolean("ok", false)
     }
 
+    // Günlük özet ayarları (premium): (açık mı, saat)
+    suspend fun summarySettings(): Pair<Boolean, Int> {
+        val d = req("/api/summary/settings") ?: return true to 21
+        val o = JSONObject(d); return o.optBoolean("enabled", true) to o.optInt("hour", 21)
+    }
+
+    suspend fun setSummarySettings(enabled: Boolean, hour: Int): Boolean =
+        req("/api/summary/settings", "PUT", JSONObject().put("enabled", enabled).put("hour", hour)) != null
+
+    // Hesabı kalıcı sil (App Store/Play uyumu) -> token temizle, girişe dön
+    suspend fun deleteAccount(): Boolean {
+        val ok = req("/api/account", "DELETE") != null
+        if (ok) { persistToken(""); prefs.edit().remove("nd_token").apply(); auth = AuthState.NEED_LOGIN }
+        return ok
+    }
+
+    // Algılama hassasiyeti (yerel, premium): "hassas" / "dengeli" / "basit"
+    var sensitivity: String
+        get() = prefs.getString("nd_sensitivity", "dengeli") ?: "dengeli"
+        set(v) { prefs.edit().putString("nd_sensitivity", v).apply() }
+
     // ---- Rotalar ----
     suspend fun rides(): List<Ride> {
         val d = req("/api/rides") ?: return emptyList()

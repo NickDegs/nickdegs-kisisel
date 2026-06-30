@@ -24,6 +24,7 @@ import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.L
 import com.nickdegs.movelog.ui.theme.Brand
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(store: Store) {
     val scope = rememberCoroutineScope()
@@ -33,12 +34,20 @@ fun ProfileScreen(store: Store) {
     var addFriend by remember { mutableStateOf(false) }
     var friends by remember { mutableStateOf<List<Convo>>(emptyList()) }
     var boostMsg by remember { mutableStateOf<String?>(null) }
+    var sens by remember { mutableStateOf(store.sensitivity) }
+    var sumOn by remember { mutableStateOf(true) }
+    var sumHour by remember { mutableStateOf(21) }
+    var showHour by remember { mutableStateOf(false) }
+    var showDelete by remember { mutableStateOf(false) }
     val billing = remember {
         Billing(ctx, onPurchase = {}, onBoost = { t ->
             scope.launch { if (store.verifyGoogleBoost(t)) boostMsg = L("Bugünkü limitin 2 katına çıktı 🚀", "Today's limit doubled 🚀") }
         })
     }
-    LaunchedEffect(Unit) { store.loadProfile(); friends = store.friends() }
+    LaunchedEffect(Unit) {
+        store.loadProfile(); friends = store.friends()
+        val s = store.summarySettings(); sumOn = s.first; sumHour = s.second
+    }
     val shown = store.displayName.ifBlank { store.me }.ifBlank { "Move Log" }
 
     LazyColumn(
@@ -127,12 +136,81 @@ fun ProfileScreen(store: Store) {
             }
         }
 
+        // Algılama hassasiyeti (premium)
+        item {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(L("Algılama hassasiyeti", "Detection sensitivity"), color = Color(0xFF9AA4B2),
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    val opts = listOf("hassas" to L("Hassas", "High"), "dengeli" to L("Dengeli", "Balanced"), "basit" to L("Basit", "Simple"))
+                    opts.forEachIndexed { i, (id, label) ->
+                        SegmentedButton(
+                            selected = sens == id,
+                            onClick = { if (store.premium || id == "basit") { sens = id; store.sensitivity = id } else showPaywall = true },
+                            shape = SegmentedButtonDefaults.itemShape(i, opts.size)
+                        ) { Text(label) }
+                    }
+                }
+                if (!store.premium) Text(L("Hassas ve Dengeli için Premium gerekir.", "High and Balanced require Premium."),
+                    color = Color(0xFF9AA4B2), fontSize = 12.sp)
+            }
+        }
+
+        // Günlük özet (premium)
+        item {
+            Surface(color = Brand.card, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(L("Günlük özet", "Daily summary"), color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(L("Her gün ${"%02d".format(sumHour)}:00'da aktivite özeti", "Activity summary daily at ${"%02d".format(sumHour)}:00"),
+                            color = Color(0xFF9AA4B2), fontSize = 12.sp)
+                    }
+                    if (sumOn) TextButton(onClick = { showHour = true }) { Text("${"%02d".format(sumHour)}:00", color = Brand.accent) }
+                    Switch(checked = sumOn, onCheckedChange = {
+                        sumOn = it; scope.launch { store.setSummarySettings(it, sumHour) }
+                    })
+                }
+            }
+        }
+
         item {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = { store.signOut() }, modifier = Modifier.fillMaxWidth()) {
                 Text(L("Çıkış", "Sign out"))
             }
+            TextButton(onClick = { showDelete = true }, modifier = Modifier.fillMaxWidth()) {
+                Text(L("Hesabı sil", "Delete account"), color = Color(0xFFFF6B6B))
+            }
+            Spacer(Modifier.height(24.dp))
         }
+    }
+
+    if (showHour) {
+        AlertDialog(onDismissRequest = { showHour = false },
+            title = { Text(L("Özet saati", "Summary time")) },
+            text = {
+                LazyColumn(Modifier.height(280.dp)) {
+                    items((0..23).toList()) { h ->
+                        Text("${"%02d".format(h)}:00", color = if (h == sumHour) Brand.accent else Color.White,
+                            fontWeight = if (h == sumHour) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                sumHour = h; showHour = false; scope.launch { store.setSummarySettings(sumOn, h) }
+                            }.padding(vertical = 10.dp))
+                    }
+                }
+            }, confirmButton = {})
+    }
+
+    if (showDelete) {
+        AlertDialog(onDismissRequest = { showDelete = false },
+            title = { Text(L("Hesabı sil?", "Delete account?")) },
+            text = { Text(L("Tüm verilerin kalıcı olarak silinir. Bu işlem geri alınamaz.", "All your data is permanently deleted. This cannot be undone.")) },
+            confirmButton = {
+                TextButton(onClick = { showDelete = false; scope.launch { store.deleteAccount() } }) {
+                    Text(L("Sil", "Delete"), color = Color(0xFFFF6B6B))
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDelete = false }) { Text(L("Vazgeç", "Cancel")) } })
     }
 
     if (editName) {
