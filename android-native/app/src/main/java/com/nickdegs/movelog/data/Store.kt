@@ -48,7 +48,7 @@ class Store(app: Application) : AndroidViewModel(app) {
         auth = AuthState.CHECKING
         val code = withContext(Dispatchers.IO) {
             try {
-                val c = (URL("$API/api/me").openConnection() as HttpURLConnection)
+                val c = (URL("$API/api/profile").openConnection() as HttpURLConnection)
                 c.requestMethod = "GET"; c.connectTimeout = 12000; c.readTimeout = 20000
                 c.setRequestProperty("Authorization", "Bearer $token")
                 val rc = c.responseCode
@@ -111,7 +111,7 @@ class Store(app: Application) : AndroidViewModel(app) {
 
     // ---- Profil ----
     suspend fun loadProfile() {
-        val d = req("/api/me") ?: return
+        val d = req("/api/profile") ?: return
         val o = JSONObject(d)
         me = o.optString("username", me)
         persistPremium(o.optBoolean("premium", premium))
