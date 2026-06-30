@@ -6,9 +6,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.ui.platform.LocalContext
+import com.nickdegs.movelog.util.saveVideoToGallery
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,8 +43,11 @@ private fun fmt(ts: Double?, pat: String): String {
 @Composable
 fun VideosScreen(store: Store) {
     val scope = rememberCoroutineScope()
+    val ctx = LocalContext.current
     var rides by remember { mutableStateOf<List<Ride>>(emptyList()) }
     var playUrl by remember { mutableStateOf<String?>(null) }
+    var savingId by remember { mutableStateOf<String?>(null) }
+    var pendingDelete by remember { mutableStateOf<Ride?>(null) }
 
     suspend fun reload() {
         rides = store.rides().filter { it.rendering || (!it.novideo) }
@@ -79,14 +83,43 @@ fun VideosScreen(store: Store) {
                                 Text(L("Hazırlanıyor…", "Rendering…"), color = Brand.accent, fontSize = 13.sp)
                             }
                         } else {
+                            // Kaydet (galeriye indir)
+                            if (savingId == r.id) CircularProgressIndicator(Modifier.size(20.dp), color = Brand.accent, strokeWidth = 2.dp)
+                            else IconButton(onClick = {
+                                savingId = r.id
+                                scope.launch {
+                                    val b = store.videoBytes(r.id)
+                                    val ok = b != null && saveVideoToGallery(ctx, b, "MoveLog_${r.id}.mp4")
+                                    savingId = null
+                                    android.widget.Toast.makeText(ctx,
+                                        if (ok) L("Galeriye kaydedildi", "Saved to gallery") else L("Kaydedilemedi", "Couldn't save"),
+                                        android.widget.Toast.LENGTH_SHORT).show()
+                                }
+                            }) { Icon(Icons.Filled.Download, L("Kaydet", "Save"), tint = Brand.accent) }
+                            // Oynat
                             IconButton(onClick = {
                                 scope.launch { playUrl = store.signedVideoUrl(r.id) ?: store.videoUrl(r.id) }
                             }) { Icon(Icons.Filled.PlayCircle, null, tint = Brand.accent, modifier = Modifier.size(40.dp)) }
+                            // Sil
+                            IconButton(onClick = { pendingDelete = r }) {
+                                Icon(Icons.Filled.Delete, L("Sil", "Delete"), tint = Color(0xFFFF6B6B))
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    pendingDelete?.let { r ->
+        AlertDialog(onDismissRequest = { pendingDelete = null },
+            title = { Text(L("Bu videoyu sil?", "Delete this video?")) },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch { store.deleteRide(r.id); reload(); pendingDelete = null }
+                }) { Text(L("Sil", "Delete"), color = Color(0xFFFF6B6B)) }
+            },
+            dismissButton = { TextButton(onClick = { pendingDelete = null }) { Text(L("Vazgeç", "Cancel")) } })
     }
 
     playUrl?.let { url ->

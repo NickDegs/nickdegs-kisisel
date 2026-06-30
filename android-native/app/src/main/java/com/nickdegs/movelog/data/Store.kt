@@ -179,6 +179,17 @@ class Store(app: Application) : AndroidViewModel(app) {
     suspend fun deleteRide(id: String): Boolean =
         req("/api/rides/$id", "DELETE") != null
 
+    // Videoyu indir (galeriye kaydetmek için) — presigned R2 (header'sız) ya da backend yedeği (auth'lu).
+    suspend fun videoBytes(id: String): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val url = signedVideoUrl(id) ?: videoUrl(id)
+            val c = (URL(url).openConnection() as HttpURLConnection)
+            if (url.contains("/api/")) c.setRequestProperty("Authorization", "Bearer $token")
+            c.connectTimeout = 15000; c.readTimeout = 90000
+            if (c.responseCode in 200..299) c.inputStream.readBytes() else null
+        } catch (e: Exception) { null }
+    }
+
     // ---- Özetler (Özet sekmesi; iOS /api/activities) ----
     suspend fun summaries(): List<Summary> {
         val d = req("/api/activities") ?: return emptyList()
