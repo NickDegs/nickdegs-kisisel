@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- kıvrımlı rota çizgisi (mavi) -->
+    <path
+        android:strokeColor="#0A85FF"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="#00000000"
+        android:pathData="M40,76 C40,64 64,64 64,52 C64,40 44,40 44,30" />
+    <!-- konum noktası (üst) -->
+    <path
+        android:fillColor="#5E5CE6"
+        android:pathData="M44,26 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+    <!-- takip noktası (alt) -->
+    <path
+        android:fillColor="#FF3B30"
+        android:pathData="M40,80 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0" />
+</vector>
