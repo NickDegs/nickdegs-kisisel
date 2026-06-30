@@ -129,6 +129,41 @@ class Store(app: Application) : AndroidViewModel(app) {
         }
     }
     suspend fun summarizeToday(): Boolean = req("/api/activities/summarize", "POST", JSONObject()) != null
+
+    // ---- Video üret (iOS generateRide ile aynı gövde) ----
+    suspend fun generate(from: Double, to: Double, type: String, mode: String, aspect: String,
+                         speed: String, camdist: String = "orta"): Boolean {
+        val b = JSONObject().put("from", from).put("to", to).put("type", type).put("mode", mode)
+            .put("aspect", aspect).put("speed", speed).put("premium", true).put("camdist", camdist)
+        val d = req("/api/rides/generate", "POST", b) ?: return false
+        return JSONObject(d).optBoolean("ok", false)
+    }
+
+    // ---- Sohbet (Harita sekmesi içi) ----
+    suspend fun conversations(): List<Convo> {
+        val d = req("/api/chat/convos") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("convos") ?: JSONArray()
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Convo(o.optString("username", ""), o.optString("name", null),
+                o.optBoolean("online", false), o.optInt("unread", 0))
+        }
+    }
+
+    // ---- Canlı konumlar (Harita) ----
+    suspend fun positions(): List<Position> {
+        val d = req("/api/positions") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("positions") ?: (JSONObject(d).optJSONArray("data") ?: JSONArray())
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Position(o.optString("device", o.optString("name", "")),
+                o.optDouble("lat"), o.optDouble("lon"),
+                o.optDouble("speedKmh", o.optDouble("spd", 0.0)), o.optBoolean("online", false))
+        }
+    }
 }
+
+data class Convo(val username: String, val name: String?, val online: Boolean, val unread: Int)
+data class Position(val device: String, val lat: Double, val lon: Double, val speedKmh: Double, val online: Boolean)
 
 data class Summary(val date: String, val summary: String, val videoId: String?)

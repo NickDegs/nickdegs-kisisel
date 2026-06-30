@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.nickdegs.movelog.data.Ride
 import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.L
@@ -39,8 +40,11 @@ private fun dayTime(r: Ride): String {
 
 @Composable
 fun RoutesScreen(store: Store) {
+    val scope = rememberCoroutineScope()
     var rides by remember { mutableStateOf<List<Ride>>(emptyList()) }
     var loaded by remember { mutableStateOf(false) }
+    var playUrl by remember { mutableStateOf<String?>(null) }
+    var genRide by remember { mutableStateOf<Ride?>(null) }
     LaunchedEffect(Unit) { rides = store.rides(); loaded = true }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -64,13 +68,30 @@ fun RoutesScreen(store: Store) {
                         if (r.rendering) {
                             Text(L("Hazırlanıyor…", "Rendering…"), color = Brand.accent, fontSize = 13.sp)
                         } else if (r.novideo) {
-                            Icon(Icons.Filled.MovieCreation, null, tint = Brand.accent)
+                            IconButton(onClick = { genRide = r }) {
+                                Icon(Icons.Filled.MovieCreation, L("Video oluştur", "Create video"), tint = Brand.accent)
+                            }
                         } else {
-                            Icon(Icons.Filled.PlayCircle, null, tint = Brand.accent, modifier = Modifier.size(34.dp))
+                            IconButton(onClick = {
+                                scope.launch { playUrl = store.signedVideoUrl(r.id) ?: store.videoUrl(r.id) }
+                            }) { Icon(Icons.Filled.PlayCircle, null, tint = Brand.accent, modifier = Modifier.size(34.dp)) }
                         }
                     }
                 }
             }
+        }
+    }
+
+    playUrl?.let { url ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { playUrl = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) { VideoPlayer(url) }
+    }
+    genRide?.let { r ->
+        GenerateSheet(store, from = r.ts ?: 0.0, to = r.to ?: 0.0, type = r.type ?: "moto") {
+            genRide = null
+            scope.launch { rides = store.rides() }   // üretim sonrası tazele ("Hazırlanıyor" görünsün)
         }
     }
 }
