@@ -1,5 +1,6 @@
 package com.nickdegs.movelog.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,7 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.screens.*
 import com.nickdegs.movelog.ui.theme.Brand
@@ -18,7 +22,17 @@ private data class Tab(val title: String, val icon: ImageVector)
 
 @Composable
 fun MoveLogApp(store: Store) {
-    if (!store.loggedIn) { LoginScreen(store); return }
+    val scope = rememberCoroutineScope()
+    // AÇILIŞ KAPISI: yalnızca sunucu-doğrulanmış kimlikle aç. İnternetsiz/kopya token ile ÇALIŞMAZ.
+    LaunchedEffect(Unit) { if (store.auth == com.nickdegs.movelog.data.AuthState.CHECKING) store.validate() }
+    when (store.auth) {
+        com.nickdegs.movelog.data.AuthState.CHECKING -> { GateScreen(true) { }; return }
+        com.nickdegs.movelog.data.AuthState.NEED_LOGIN -> { LoginScreen(store); return }
+        com.nickdegs.movelog.data.AuthState.OFFLINE -> {
+            GateScreen(false) { scope.launch { store.validate() } }; return
+        }
+        else -> {}   // VALID -> devam
+    }
 
     var sel by remember { mutableStateOf(0) }
     val tabs = listOf(
@@ -61,10 +75,27 @@ fun MoveLogApp(store: Store) {
     }
 }
 
+// Açılış kapısı ekranı: checking=doğrulanıyor (spinner); değilse İNTERNET GEREKLİ (yeniden dene).
 @Composable
-fun PlaceholderScreen(title: String) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("$title\n${L("yakında", "coming soon")}", color = Color_secondary)
+fun GateScreen(checking: Boolean, onRetry: () -> Unit) {
+    Box(Modifier.fillMaxSize().background(Brand.bg).padding(28.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Move Log", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Brand.accent)
+            if (checking) {
+                CircularProgressIndicator(color = Brand.accent)
+                Text(L("Kimlik doğrulanıyor…", "Verifying identity…"), color = Color_secondary)
+            } else {
+                Icon(Icons.Filled.WifiOff, null, tint = Color_secondary, modifier = Modifier.size(44.dp))
+                Text(L("İnternet gerekli", "Internet required"), color = androidx.compose.ui.graphics.Color.White,
+                    fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text(L("Bu uygulama çevrimdışı çalışmaz. Kimliğini doğrulamak için internet bağlantısı gerekir.",
+                       "This app does not work offline. An internet connection is required to verify your identity."),
+                    color = Color_secondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Button(onClick = onRetry, colors = ButtonDefaults.buttonColors(containerColor = Brand.accent)) {
+                    Text(L("Yeniden dene", "Retry"))
+                }
+            }
+        }
     }
 }
 

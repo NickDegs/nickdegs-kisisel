@@ -1,6 +1,7 @@
 package com.nickdegs.movelog.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,6 +21,7 @@ import com.nickdegs.movelog.ui.theme.Brand
 
 @Composable
 fun ProfileScreen(store: Store) {
+    var showPaywall by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { store.loadProfile() }
     Column(
         Modifier.fillMaxSize().padding(24.dp),
@@ -32,7 +34,8 @@ fun ProfileScreen(store: Store) {
         }
         Text(store.me.ifEmpty { "Move Log" }, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.White)
 
-        Surface(color = Brand.card, shape = RoundedCornerShape(22.dp), modifier = Modifier.fillMaxWidth()) {
+        Surface(color = Brand.card, shape = RoundedCornerShape(22.dp),
+            modifier = Modifier.fillMaxWidth().clickable { if (!store.premium) showPaywall = true }) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Star, null, tint = Brand.accent)
                 Spacer(Modifier.width(12.dp))
@@ -49,5 +52,12 @@ fun ProfileScreen(store: Store) {
         OutlinedButton(onClick = { store.signOut() }, modifier = Modifier.fillMaxWidth()) {
             Text(L("Çıkış", "Sign out"))
         }
+    }
+
+    if (showPaywall) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showPaywall = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) { PaywallScreen(store) { showPaywall = false } }
     }
 }

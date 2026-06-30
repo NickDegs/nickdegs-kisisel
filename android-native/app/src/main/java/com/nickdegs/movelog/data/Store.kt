@@ -16,6 +16,9 @@ import kotlinx.coroutines.withContext
 
 const val API = "https://kisisel-api.nickdegs.com"
 
+// Oturum durumu — uygulama yalnızca SUNUCU-DOĞRULANMIŞ kimlikle açılır (internetsiz/kopya token çalışmaz).
+enum class AuthState { CHECKING, VALID, NEED_LOGIN, OFFLINE }
+
 data class Ride(
     val id: String, val date: String, val type: String?, val mode: String?,
     val size: Double, val ts: Double?, val to: Double?, val aspect: String?,
@@ -34,7 +37,34 @@ class Store(app: Application) : AndroidViewModel(app) {
     var premium by mutableStateOf(prefs.getBoolean("nd_premium", false))
     var loginError by mutableStateOf(false)
 
+    // Açılış kapısı: token yoksa giriş; varsa SUNUCUDA doğrulanana kadar CHECKING.
+    var auth by mutableStateOf(if ((prefs.getString("nd_token", "") ?: "").isEmpty()) AuthState.NEED_LOGIN else AuthState.CHECKING)
+
     val loggedIn: Boolean get() = token.isNotEmpty()
+
+    // Token'ı sunucuya doğrulat. 200=geçerli, 401/403=geçersiz->giriş, ağ hatası=OFFLINE (uygulama açılmaz).
+    suspend fun validate() {
+        if (token.isEmpty()) { auth = AuthState.NEED_LOGIN; return }
+        auth = AuthState.CHECKING
+        val code = withContext(Dispatchers.IO) {
+            try {
+                val c = (URL("$API/api/me").openConnection() as HttpURLConnection)
+                c.requestMethod = "GET"; c.connectTimeout = 12000; c.readTimeout = 20000
+                c.setRequestProperty("Authorization", "Bearer $token")
+                val rc = c.responseCode
+                if (rc == 200) {
+                    val o = JSONObject(c.inputStream.bufferedReader().readText())
+                    me = o.optString("username", me); persistPremium(o.optBoolean("premium", premium))
+                }
+                rc
+            } catch (e: Exception) { -1 }
+        }
+        auth = when {
+            code == 200 -> AuthState.VALID
+            code == 401 || code == 403 -> { persistToken(""); AuthState.NEED_LOGIN }   // geçersiz/iptal token
+            else -> AuthState.OFFLINE                                                   // internet yok -> kullanılamaz
+        }
+    }
 
     private fun persistToken(t: String) {
         token = t; prefs.edit().putString("nd_token", t).apply()
@@ -42,7 +72,7 @@ class Store(app: Application) : AndroidViewModel(app) {
     fun persistPremium(v: Boolean) {
         premium = v; prefs.edit().putBoolean("nd_premium", v).apply()
     }
-    fun signOut() { persistToken(""); prefs.edit().remove("nd_token").apply() }
+    fun signOut() { persistToken(""); prefs.edit().remove("nd_token").apply(); auth = AuthState.NEED_LOGIN }
 
     // ---- HTTP yardımcısı (auth header + JSON) ----
     private suspend fun req(path: String, method: String = "GET", body: JSONObject? = null): String? =
@@ -75,6 +105,7 @@ class Store(app: Application) : AndroidViewModel(app) {
         if (t.isEmpty()) { loginError = true; return false }
         persistToken(t); loginError = false
         loadProfile()
+        auth = AuthState.VALID
         return true
     }
 
