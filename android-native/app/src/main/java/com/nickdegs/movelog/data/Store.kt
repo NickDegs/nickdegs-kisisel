@@ -17,7 +17,9 @@ import kotlinx.coroutines.withContext
 const val API = "https://kisisel-api.nickdegs.com"
 
 // Oturum durumu — uygulama yalnızca SUNUCU-DOĞRULANMIŞ kimlikle açılır (internetsiz/kopya token çalışmaz).
-enum class AuthState { CHECKING, VALID, NEED_LOGIN, OFFLINE }
+// BLOCKED = Play Integrity tamper/sideload tespiti (kurcalanmış/korsan kurulum).
+enum class AuthState { CHECKING, VALID, NEED_LOGIN, OFFLINE, BLOCKED }
+const val CLOUD_PROJECT_NUMBER = 909630333798L   // Play Integrity (film-ozet)
 
 data class Ride(
     val id: String, val date: String, val type: String?, val mode: String?,
@@ -59,12 +61,40 @@ class Store(app: Application) : AndroidViewModel(app) {
                 rc
             } catch (e: Exception) { -1 }
         }
-        auth = when {
-            code == 200 -> AuthState.VALID
-            code == 401 || code == 403 -> { persistToken(""); AuthState.NEED_LOGIN }   // geçersiz/iptal token
-            else -> AuthState.OFFLINE                                                   // internet yok -> kullanılamaz
+        when {
+            code == 200 -> {
+                // Play Integrity (anti-tamper/sideload): kurcalanmış/korsan kurulum engellenir (fail-open).
+                if (!checkIntegrity()) { auth = AuthState.BLOCKED; return }
+                auth = AuthState.VALID
+            }
+            code == 401 || code == 403 -> { persistToken(""); auth = AuthState.NEED_LOGIN }   // geçersiz token
+            else -> auth = AuthState.OFFLINE                                                   // internet yok
         }
     }
+
+    // Play Integrity: nonce al -> token üret -> backend decode. true=geç (veya doğrulama hazır değil), false=KESİN tamper.
+    private suspend fun checkIntegrity(): Boolean {
+        return try {
+            val nd = req("/api/integrity/nonce") ?: return true       // sunucu yoksa engelleme
+            val nonce = JSONObject(nd).optString("nonce", "")
+            if (nonce.isEmpty()) return true
+            val itok = requestIntegrityToken(nonce) ?: return true     // token alınamadı -> engelleme yok
+            val cd = req("/api/integrity", "POST", JSONObject().put("token", itok)) ?: return true
+            JSONObject(cd).optBoolean("ok", true)
+        } catch (e: Exception) { true }
+    }
+
+    private suspend fun requestIntegrityToken(nonce: String): String? =
+        kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            try {
+                val mgr = com.google.android.play.core.integrity.IntegrityManagerFactory.create(getApplication())
+                mgr.requestIntegrityToken(
+                    com.google.android.play.core.integrity.IntegrityTokenRequest.builder()
+                        .setNonce(nonce).setCloudProjectNumber(CLOUD_PROJECT_NUMBER).build()
+                ).addOnSuccessListener { cont.resume(it.token()) { } }
+                 .addOnFailureListener { cont.resume(null) { } }
+            } catch (e: Exception) { cont.resume(null) { } }
+        }
 
     private fun persistToken(t: String) {
         token = t; prefs.edit().putString("nd_token", t).apply()

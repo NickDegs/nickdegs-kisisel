@@ -31,6 +31,7 @@ fun MoveLogApp(store: Store) {
         com.nickdegs.movelog.data.AuthState.OFFLINE -> {
             GateScreen(false) { scope.launch { store.validate() } }; return
         }
+        com.nickdegs.movelog.data.AuthState.BLOCKED -> { SecurityBlockScreen(); return }
         else -> {}   // VALID -> devam
     }
 
@@ -95,6 +96,22 @@ fun GateScreen(checking: Boolean, onRetry: () -> Unit) {
                     Text(L("Yeniden dene", "Retry"))
                 }
             }
+        }
+    }
+}
+
+// Güvenlik engeli: Play Integrity kurcalanmış/korsan kurulum tespit etti.
+@Composable
+fun SecurityBlockScreen() {
+    Box(Modifier.fillMaxSize().background(Brand.bg).padding(28.dp), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            Icon(Icons.Filled.GppBad, null, tint = androidx.compose.ui.graphics.Color(0xFFFF3B30), modifier = Modifier.size(56.dp))
+            Text(L("Güvenlik doğrulaması başarısız", "Security check failed"),
+                fontSize = 20.sp, fontWeight = FontWeight.Bold, color = androidx.compose.ui.graphics.Color.White)
+            Text(L("Bu kurulum doğrulanamadı. Lütfen Move Log'u Google Play'den resmi olarak indir.",
+                   "This installation couldn't be verified. Please install Move Log from Google Play."),
+                color = Color_secondary, fontSize = 13.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }

@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -73,24 +74,29 @@ private fun MapPane(store: Store) {
         Text(if (recording) L("Kaydı durdur", "Stop recording") else L("Rota kaydını başlat", "Start recording"))
     }
 
-    if (pos.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(L("Canlı konum yok", "No live locations"), color = Color(0xFF9AA4B2))
-    }
-    LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(pos) { p ->
-            Surface(color = Brand.card, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.LocationOn, null, tint = if (p.online) Brand.accent else Color(0xFF6B7280))
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(p.device, color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text("%.5f, %.5f".format(p.lat, p.lon), color = Color(0xFF9AA4B2), fontSize = 12.sp)
-                    }
-                    Text("${p.speedKmh.toInt()} km/h", color = Brand.accent, fontWeight = FontWeight.SemiBold)
-                }
+    // Gerçek harita (OpenStreetMap — Maps API key gerekmez), konumlar marker
+    androidx.compose.ui.viewinterop.AndroidView(
+        factory = { c ->
+            org.osmdroid.config.Configuration.getInstance().userAgentValue = c.packageName
+            org.osmdroid.views.MapView(c).apply {
+                setTileSource(org.osmdroid.tileprovider.tilesource.TileSourceFactory.MAPNIK)
+                setMultiTouchControls(true); controller.setZoom(13.5)
             }
-        }
-    }
+        },
+        update = { map ->
+            map.overlays.clear()
+            pos.forEach { p ->
+                val mk = org.osmdroid.views.overlay.Marker(map)
+                mk.position = org.osmdroid.util.GeoPoint(p.lat, p.lon)
+                mk.title = "${p.device} · ${p.speedKmh.toInt()} km/h"
+                mk.setAnchor(org.osmdroid.views.overlay.Marker.ANCHOR_CENTER, org.osmdroid.views.overlay.Marker.ANCHOR_BOTTOM)
+                map.overlays.add(mk)
+            }
+            pos.firstOrNull()?.let { map.controller.setCenter(org.osmdroid.util.GeoPoint(it.lat, it.lon)) }
+            map.invalidate()
+        },
+        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))
+    )
 }
 
 @Composable
