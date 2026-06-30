@@ -7,7 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.nickdegs.movelog.data.Convo
 import com.nickdegs.movelog.data.Position
 import com.nickdegs.movelog.data.Store
@@ -40,7 +41,38 @@ fun MapChatScreen(store: Store) {
 @Composable
 private fun MapPane(store: Store) {
     var pos by remember { mutableStateOf<List<Position>>(emptyList()) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var recording by remember { mutableStateOf(com.nickdegs.movelog.TrackingService.active) }
+    val perm = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { res ->
+        if (res[android.Manifest.permission.ACCESS_FINE_LOCATION] == true) {
+            scope.launch {
+                val t = store.trackerInfo()
+                if (t != null) { com.nickdegs.movelog.TrackingService.start(ctx, t.first, t.second); recording = true }
+            }
+        }
+    }
     LaunchedEffect(Unit) { pos = store.positions() }
+
+    Button(
+        onClick = {
+            if (recording) { com.nickdegs.movelog.TrackingService.stop(ctx); recording = false }
+            else perm.launch(arrayOf(
+                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                android.Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+                android.Manifest.permission.POST_NOTIFICATIONS))
+        },
+        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+            containerColor = if (recording) androidx.compose.ui.graphics.Color(0xFFFF3B30) else Brand.accent),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
+    ) {
+        Icon(if (recording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord, null)
+        Spacer(Modifier.width(8.dp))
+        Text(if (recording) L("Kaydı durdur", "Stop recording") else L("Rota kaydını başlat", "Start recording"))
+    }
+
     if (pos.isEmpty()) Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Text(L("Canlı konum yok", "No live locations"), color = Color(0xFF9AA4B2))
     }

@@ -170,6 +170,15 @@ class Store(app: Application) : AndroidViewModel(app) {
         return JSONObject(d).optBoolean("ok", false)
     }
 
+    // ---- Rota kaydı: Traccar cihaz id + OsmAnd ingest URL (iOS /api/tracker) ----
+    suspend fun trackerInfo(): Pair<String, String>? {
+        val d = req("/api/tracker") ?: return null
+        val o = JSONObject(d)
+        val id = if (o.isNull("deviceId")) null else o.optString("deviceId", null)
+        val url = if (o.isNull("url")) null else o.optString("url", null)
+        return if (id != null && url != null) id to url else null
+    }
+
     // ---- Play satın almasını SUNUCUDA doğrula (client'a güvenme) -> premium ----
     suspend fun verifyGooglePurchase(token: String): Boolean {
         val d = req("/api/iap/google", "POST", JSONObject().put("token", token)) ?: return false
