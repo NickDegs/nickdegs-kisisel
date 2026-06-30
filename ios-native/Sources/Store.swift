@@ -35,14 +35,47 @@ struct Convo: Codable, Identifiable, Hashable {
     var id: String { username }
 }
 
+// Açılış kapısı: uygulama yalnızca SUNUCU-DOĞRULANMIŞ kimlikle açılır (internetsiz/kopya token çalışmaz).
+enum AuthGate { case checking, valid, needLogin, offline }
+
 // MARK: - API + Durum
 @MainActor final class Store: ObservableObject {
     @Published var token: String = UserDefaults.standard.string(forKey: "nd_token") ?? ""
     @Published var me: String = ""
     @Published var loginError = false
     @Published var jumpToVideos = false   // "Video oluştur" sonrası Videolarım sekmesine geç ("Hazırlanıyor" görünür)
+    @Published var gate: AuthGate = .checking   // açılış doğrulama durumu
     var loggedIn: Bool { !token.isEmpty || (AppEnv.demo && AppEnv.screen != "hero") }
-    init() { if AppEnv.demo && AppEnv.screen != "hero" { me = "me" } }
+    init() {
+        if AppEnv.demo && AppEnv.screen != "hero" { me = "me"; gate = .valid }
+        else if token.isEmpty { gate = .needLogin }   // token yoksa giriş; varsa CHECKING (sunucuda doğrula)
+    }
+
+    // Token'ı SUNUCUYA doğrulat. 200=geçerli, 401/403=geçersiz->giriş, ağ hatası=OFFLINE (uygulama açılmaz).
+    func validate() async {
+        if AppEnv.demo && AppEnv.screen != "hero" { gate = .valid; return }
+        if token.isEmpty { gate = .needLogin; return }
+        gate = .checking
+        var r = URLRequest(url: URL(string: API + "/api/profile")!)
+        r.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        r.timeoutInterval = 15
+        do {
+            let (data, resp) = try await URLSession.shared.data(for: r)
+            let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+            if code == 200 {
+                if let o = try? JSONSerialization.jsonObject(with: data) as? [String:Any] {
+                    me = (o["username"] as? String) ?? me
+                }
+                gate = .valid
+            } else if code == 401 || code == 403 {
+                logout(); gate = .needLogin            // geçersiz/iptal/kopya token
+            } else {
+                gate = .offline                        // sunucu/internet sorunu -> kullanılamaz
+            }
+        } catch {
+            gate = .offline                            // internet yok -> uygulama açılmaz
+        }
+    }
 
     private func dec() -> JSONDecoder { let d = JSONDecoder(); d.keyDecodingStrategy = .convertFromSnakeCase; return d }
 
@@ -66,7 +99,7 @@ struct Convo: Codable, Identifiable, Hashable {
             let (data, _) = try await URLSession.shared.data(for: r)
             if let o = try JSONSerialization.jsonObject(with: data) as? [String:Any], let t = o["token"] as? String {
                 token = t; me = user
-                UserDefaults.standard.set(t, forKey: "nd_token")
+                UserDefaults.standard.set(t, forKey: "nd_token"); gate = .valid
             } else { loginError = true }
         } catch { loginError = true }
     }
@@ -93,12 +126,12 @@ struct Convo: Codable, Identifiable, Hashable {
             if let h = resp as? HTTPURLResponse, h.statusCode < 300,
                let o = try JSONSerialization.jsonObject(with: data) as? [String:Any], let t = o["token"] as? String {
                 token = t; me = (o["user"] as? String) ?? ""
-                UserDefaults.standard.set(t, forKey: "nd_token")
+                UserDefaults.standard.set(t, forKey: "nd_token"); gate = .valid
             } else { loginError = true }
         } catch { loginError = true }
     }
 
-    func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token") }
+    func logout() { token = ""; UserDefaults.standard.removeObject(forKey: "nd_token"); gate = .needLogin }
 
     func deleteAccount() async {
         _ = try? await req("/api/account", method: "DELETE")

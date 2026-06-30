@@ -15,8 +15,15 @@ struct MoveLogApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if store.loggedIn { RootView() } else { LoginView() }
+                // AÇILIŞ KAPISI: yalnızca sunucu-doğrulanmış kimlikle aç (internetsiz/kopya token çalışmaz).
+                switch store.gate {
+                case .valid: RootView()
+                case .needLogin: LoginView()
+                case .checking: AuthGateView(checking: true) {}
+                case .offline: AuthGateView(checking: false) { Task { await store.validate() } }
+                }
             }
+            .task { if store.gate == .checking { await store.validate() } }
             .environmentObject(store)
             .environmentObject(iap)
             .environmentObject(cloud)
@@ -24,6 +31,30 @@ struct MoveLogApp: App {
             .tint(Brand.accent)
             .fontDesign(design)
             .preferredColorScheme(scheme == "light" ? .light : .dark)
+        }
+    }
+}
+
+// Açılış kapısı ekranı: checking=doğrulanıyor; değilse İNTERNET GEREKLİ (uygulama çevrimdışı açılmaz).
+struct AuthGateView: View {
+    let checking: Bool
+    let onRetry: () -> Void
+    var body: some View {
+        ZStack {
+            Color(red: 0.02, green: 0.027, blue: 0.047).ignoresSafeArea()
+            VStack(spacing: 16) {
+                Text("Move Log").font(.system(size: 30, weight: .bold)).foregroundStyle(Brand.accent)
+                if checking {
+                    ProgressView().tint(Brand.accent)
+                    Text("Kimlik doğrulanıyor…").foregroundStyle(.secondary)
+                } else {
+                    Image(systemName: "wifi.slash").font(.system(size: 40)).foregroundStyle(.secondary)
+                    Text("İnternet gerekli").font(.headline).foregroundStyle(.white)
+                    Text("Bu uygulama çevrimdışı çalışmaz. Kimliğini doğrulamak için internet bağlantısı gerekir.")
+                        .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 32)
+                    Button("Yeniden dene", action: onRetry).buttonStyle(.borderedProminent).tint(Brand.accent)
+                }
+            }
         }
     }
 }
