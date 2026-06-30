@@ -244,13 +244,33 @@ class Store(app: Application) : AndroidViewModel(app) {
 
     // ---- Sohbet (Harita sekmesi içi) ----
     suspend fun conversations(): List<Convo> {
-        val d = req("/api/chat/convos") ?: return emptyList()
-        val arr = JSONObject(d).optJSONArray("convos") ?: JSONArray()
+        val d = req("/api/chat/list") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("conversations") ?: JSONArray()
         return (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
+            val last = o.optJSONObject("last")?.optString("text") ?: ""
             Convo(o.optString("username", ""), o.optString("name", null),
-                o.optBoolean("online", false), o.optInt("unread", 0))
+                o.optBoolean("online", false), o.optInt("unread", 0), last)
         }
+    }
+
+    // Bir kişiyle mesajlar + karşı profil
+    suspend fun chatWith(other: String): Pair<List<Msg>, String> {
+        val d = req("/api/chat/with/$other") ?: return emptyList<Msg>() to other
+        val o = JSONObject(d)
+        val arr = o.optJSONArray("messages") ?: JSONArray()
+        val msgs = (0 until arr.length()).map { i ->
+            val m = arr.getJSONObject(i)
+            Msg(m.optString("id"), m.optString("frm"), m.optString("text"), m.optLong("ts"))
+        }
+        val name = o.optJSONObject("peer")?.optString("name") ?: other
+        return msgs to name
+    }
+
+    suspend fun chatSend(to: String, text: String): Boolean {
+        val body = JSONObject().put("to", to).put("text", text)
+        val d = req("/api/chat/send", "POST", body) ?: return false
+        return JSONObject(d).optBoolean("ok", false)
     }
 
     // ---- Canlı konumlar (Harita) ----
@@ -266,7 +286,8 @@ class Store(app: Application) : AndroidViewModel(app) {
     }
 }
 
-data class Convo(val username: String, val name: String?, val online: Boolean, val unread: Int)
+data class Convo(val username: String, val name: String?, val online: Boolean, val unread: Int, val last: String = "")
+data class Msg(val id: String, val frm: String, val text: String, val ts: Long)
 data class Position(val device: String, val lat: Double, val lon: Double, val speedKmh: Double, val online: Boolean)
 
 data class Summary(val date: String, val summary: String, val videoId: String?)
