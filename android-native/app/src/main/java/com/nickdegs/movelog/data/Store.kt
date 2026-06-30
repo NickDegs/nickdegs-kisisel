@@ -184,14 +184,24 @@ class Store(app: Application) : AndroidViewModel(app) {
         return JSONObject(d).optBoolean("ok", false)
     }
 
-    // Günlük özet ayarları (premium): (açık mı, saat)
-    suspend fun summarySettings(): Pair<Boolean, Int> {
-        val d = req("/api/summary/settings") ?: return true to 21
-        val o = JSONObject(d); return o.optBoolean("enabled", true) to o.optInt("hour", 21)
+    // Günlük özet ayarları (premium): açık mı + saat + gün özeti VİDEOSU render seçenekleri
+    suspend fun summarySettings(): SummaryCfg {
+        val d = req("/api/summary/settings") ?: return SummaryCfg()
+        val o = JSONObject(d)
+        val v = o.optJSONObject("video") ?: JSONObject()
+        return SummaryCfg(o.optBoolean("enabled", true), o.optInt("hour", 21),
+            SummaryVid(v.optString("mode", "flyover"), v.optString("speed", "medium"),
+                v.optString("aspect", "16:9"), v.optString("cam", "orta"),
+                v.optString("music", ""), v.optString("line", "#00E5FF")))
     }
 
-    suspend fun setSummarySettings(enabled: Boolean, hour: Int): Boolean =
-        req("/api/summary/settings", "PUT", JSONObject().put("enabled", enabled).put("hour", hour)) != null
+    suspend fun setSummarySettings(cfg: SummaryCfg): Boolean {
+        val v = JSONObject().put("mode", cfg.video.mode).put("speed", cfg.video.speed)
+            .put("aspect", cfg.video.aspect).put("cam", cfg.video.cam)
+            .put("music", cfg.video.music).put("line", cfg.video.line)
+        val body = JSONObject().put("enabled", cfg.enabled).put("hour", cfg.hour).put("video", v)
+        return req("/api/summary/settings", "PUT", body) != null
+    }
 
     // Hesabı kalıcı sil (App Store/Play uyumu) -> token temizle, girişe dön
     suspend fun deleteAccount(): Boolean {
@@ -360,6 +370,9 @@ class Store(app: Application) : AndroidViewModel(app) {
     }
 }
 
+data class SummaryVid(val mode: String = "flyover", val speed: String = "medium", val aspect: String = "16:9",
+                      val cam: String = "orta", val music: String = "", val line: String = "#00E5FF")
+data class SummaryCfg(val enabled: Boolean = true, val hour: Int = 21, val video: SummaryVid = SummaryVid())
 data class Convo(val username: String, val name: String?, val online: Boolean, val unread: Int, val last: String = "")
 data class Msg(val id: String, val frm: String, val text: String, val ts: Long)
 data class Position(val device: String, val lat: Double, val lon: Double, val speedKmh: Double, val online: Boolean)

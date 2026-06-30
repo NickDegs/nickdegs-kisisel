@@ -1,7 +1,12 @@
 package com.nickdegs.movelog.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -38,9 +43,12 @@ fun ProfileScreen(store: Store) {
     var sens by remember { mutableStateOf(store.sensitivity) }
     var sumOn by remember { mutableStateOf(true) }
     var sumHour by remember { mutableStateOf(21) }
+    var sumVid by remember { mutableStateOf(com.nickdegs.movelog.data.SummaryVid()) }
     var showHour by remember { mutableStateOf(false) }
+    var showSumVid by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
     var showAvatar by remember { mutableStateOf(false) }
+    fun saveSummary() { scope.launch { store.setSummarySettings(com.nickdegs.movelog.data.SummaryCfg(sumOn, sumHour, sumVid)) } }
     val billing = remember {
         Billing(ctx, onPurchase = {}, onBoost = { t ->
             scope.launch { if (store.verifyGoogleBoost(t)) boostMsg = L("Bugünkü limitin 2 katına çıktı 🚀", "Today's limit doubled 🚀") }
@@ -48,7 +56,7 @@ fun ProfileScreen(store: Store) {
     }
     LaunchedEffect(Unit) {
         store.loadProfile(); friends = store.friends()
-        val s = store.summarySettings(); sumOn = s.first; sumHour = s.second
+        val s = store.summarySettings(); sumOn = s.enabled; sumHour = s.hour; sumVid = s.video
     }
     val shown = store.displayName.ifBlank { store.me }.ifBlank { "Move Log" }
 
@@ -165,16 +173,28 @@ fun ProfileScreen(store: Store) {
         // Günlük özet (premium)
         item {
             Surface(color = Brand.card, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(L("Günlük özet", "Daily summary"), color = Color.White, fontWeight = FontWeight.SemiBold)
-                        Text(L("Her gün ${"%02d".format(sumHour)}:00'da aktivite özeti", "Activity summary daily at ${"%02d".format(sumHour)}:00"),
-                            color = Color(0xFF9AA4B2), fontSize = 12.sp)
+                Column(Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(L("Günlük özet", "Daily summary"), color = Color.White, fontWeight = FontWeight.SemiBold)
+                            Text(L("Her gün ${"%02d".format(sumHour)}:00'da aktivite özeti", "Activity summary daily at ${"%02d".format(sumHour)}:00"),
+                                color = Color(0xFF9AA4B2), fontSize = 12.sp)
+                        }
+                        if (sumOn) TextButton(onClick = { showHour = true }) { Text("${"%02d".format(sumHour)}:00", color = Brand.accent) }
+                        Switch(checked = sumOn, onCheckedChange = { sumOn = it; saveSummary() })
                     }
-                    if (sumOn) TextButton(onClick = { showHour = true }) { Text("${"%02d".format(sumHour)}:00", color = Brand.accent) }
-                    Switch(checked = sumOn, onCheckedChange = {
-                        sumOn = it; scope.launch { store.setSummarySettings(it, sumHour) }
-                    })
+                    if (sumOn) {
+                        Spacer(Modifier.height(4.dp))
+                        Row(Modifier.fillMaxWidth().clickable { showSumVid = true },
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Movie, null, tint = Brand.accent, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(L("Özet videosu ayarları", "Summary video settings"), color = Color.White, fontSize = 14.sp)
+                            Spacer(Modifier.weight(1f))
+                            Text("${sumVid.mode} · ${sumVid.aspect}", color = Color(0xFF9AA4B2), fontSize = 12.sp)
+                            Icon(Icons.Filled.ChevronRight, null, tint = Color(0xFF9AA4B2))
+                        }
+                    }
                 }
             }
         }
@@ -200,11 +220,40 @@ fun ProfileScreen(store: Store) {
                         Text("${"%02d".format(h)}:00", color = if (h == sumHour) Brand.accent else Color.White,
                             fontWeight = if (h == sumHour) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier.fillMaxWidth().clickable {
-                                sumHour = h; showHour = false; scope.launch { store.setSummarySettings(sumOn, h) }
+                                sumHour = h; showHour = false; saveSummary()
                             }.padding(vertical = 10.dp))
                     }
                 }
             }, confirmButton = {})
+    }
+
+    if (showSumVid) {
+        AlertDialog(onDismissRequest = { showSumVid = false; saveSummary() },
+            title = { Text(L("Özet videosu", "Summary video")) },
+            text = {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SumChips(L("Görünüm", "Mode"), listOf("flat" to L("Düz","Flat"), "flyover" to "Flyover", "3d" to L("3B","3D")),
+                        sumVid.mode) { sumVid = sumVid.copy(mode = it) }
+                    SumChips(L("Süre", "Duration"), listOf("fast" to L("Kısa","Short"), "medium" to L("Orta","Medium"), "slow" to L("Uzun","Long"), "auto" to L("Otonom","Auto")),
+                        sumVid.speed) { sumVid = sumVid.copy(speed = it) }
+                    SumChips(L("En-boy", "Aspect"), listOf("16:9" to "16:9", "9:16" to "9:16"),
+                        sumVid.aspect) { sumVid = sumVid.copy(aspect = it) }
+                    SumChips(L("Kamera", "Camera"), listOf("yakin" to L("Yakın","Near"), "orta" to L("Orta","Medium"), "uzak" to L("Uzak","Far")),
+                        sumVid.cam) { sumVid = sumVid.copy(cam = it) }
+                    SumChips(L("Müzik", "Music"), listOf("" to L("Yok","None"), "stock:chill" to "Chill", "stock:epic" to "Epic", "stock:upbeat" to "Upbeat", "stock:lofi" to "Lo-Fi", "stock:cinematic" to "Cinematic"),
+                        sumVid.music) { sumVid = sumVid.copy(music = it) }
+                    Text(L("Rota rengi", "Route color"), color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        listOf("#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00").forEach { hex ->
+                            Box(Modifier.size(32.dp).clip(CircleShape)
+                                .background(Color(android.graphics.Color.parseColor(hex)))
+                                .border(if (sumVid.line.equals(hex, true)) 3.dp else 0.dp, Color.White, CircleShape)
+                                .clickable { sumVid = sumVid.copy(line = hex) })
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showSumVid = false; saveSummary() }) { Text(L("Tamam", "Done")) } })
     }
 
     if (showAvatar) {
@@ -284,5 +333,20 @@ fun ProfileScreen(store: Store) {
             onDismissRequest = { showPaywall = false },
             properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
         ) { PaywallScreen(store) { showPaywall = false } }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SumChips(title: String, opts: List<Pair<String, String>>, sel: String, onSel: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, color = Color(0xFF9AA4B2), fontSize = 13.sp)
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            opts.forEach { (id, label) ->
+                FilterChip(selected = sel == id, onClick = { onSel(id) }, label = { Text(label) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Brand.accent, selectedLabelColor = Color.White))
+            }
+        }
     }
 }
