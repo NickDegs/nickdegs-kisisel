@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -39,6 +40,7 @@ fun ProfileScreen(store: Store) {
     var sumHour by remember { mutableStateOf(21) }
     var showHour by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
+    var showAvatar by remember { mutableStateOf(false) }
     val billing = remember {
         Billing(ctx, onPurchase = {}, onBoost = { t ->
             scope.launch { if (store.verifyGoogleBoost(t)) boostMsg = L("Bugünkü limitin 2 katına çıktı 🚀", "Today's limit doubled 🚀") }
@@ -57,8 +59,12 @@ fun ProfileScreen(store: Store) {
     ) {
         item {
             Spacer(Modifier.height(12.dp))
-            Box(Modifier.size(96.dp).background(Brand.gradient, CircleShape), contentAlignment = Alignment.Center) {
-                Text(shown.take(1).uppercase(), fontSize = 40.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            Box(Modifier.size(96.dp).background(Brand.gradient, CircleShape).clickable { showAvatar = true },
+                contentAlignment = Alignment.Center) {
+                if (store.avatarEmoji.isNotEmpty())
+                    Text(store.avatarEmoji, fontSize = 48.sp)
+                else
+                    Text(shown.take(1).uppercase(), fontSize = 40.sp, color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
         item {
@@ -199,6 +205,32 @@ fun ProfileScreen(store: Store) {
                     }
                 }
             }, confirmButton = {})
+    }
+
+    if (showAvatar) {
+        val emojis = listOf("🦊","🦁","🐯","🐺","🐻","🐼","🐶","🐱","🦅","🦉","🐴","🦄",
+            "🏍️","🚗","🚲","🛵","🚙","✈️","🚁","⛵️","🏎️","🛻","🚜","🛴",
+            "🏃","🚶","🚴","🏔️","🌊","🏕️","🌅","🌍","🌙","☀️","🌈","🛣️",
+            "⚡️","🔥","⭐️","🎯","🏆","💎","🎸","🎮","📷","🧭","🗺️","❤️")
+        AlertDialog(onDismissRequest = { showAvatar = false },
+            title = { Text(L("Avatar seç", "Pick an avatar")) },
+            text = {
+                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(6),
+                    modifier = Modifier.height(300.dp)
+                ) {
+                    gridItems(emojis) { e ->
+                        Text(e, fontSize = 30.sp, modifier = Modifier.padding(6.dp).clickable {
+                            showAvatar = false; scope.launch { store.setAvatarEmoji(e) }
+                        })
+                    }
+                }
+            }, confirmButton = {
+                if (store.avatarEmoji.isNotEmpty())
+                    TextButton(onClick = { showAvatar = false; scope.launch { store.setAvatarEmoji("") } }) {
+                        Text(L("Kaldır", "Remove"), color = Color(0xFFFF6B6B))
+                    }
+            })
     }
 
     if (showDelete) {

@@ -141,12 +141,23 @@ class Store(app: Application) : AndroidViewModel(app) {
     }
 
     // ---- Profil ----
+    var avatarEmoji by mutableStateOf("")   // boşsa baş harf gösterilir
+
     suspend fun loadProfile() {
         val d = req("/api/profile") ?: return
         val o = JSONObject(d)
         me = o.optString("username", me)
         displayName = o.optString("name", displayName)
+        val av = o.optJSONObject("avatar")
+        avatarEmoji = if (av?.optString("type") == "emoji") av.optString("value", "") else ""
         persistPremium(o.optBoolean("premium", premium))
+    }
+
+    suspend fun setAvatarEmoji(emoji: String): Boolean {
+        val av = JSONObject().put("type", "emoji").put("value", emoji)
+        val d = req("/api/profile", "PUT", JSONObject().put("avatar", av)) ?: return false
+        avatarEmoji = emoji
+        return JSONObject(d).has("username")
     }
 
     // ---- İsim / Arkadaşlar (Profil) ----
