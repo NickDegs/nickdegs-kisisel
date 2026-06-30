@@ -139,6 +139,20 @@ class Store(app: Application) : AndroidViewModel(app) {
         return JSONObject(d).optBoolean("ok", false)
     }
 
+    // ---- GPX/TCX yükle (ham body; iOS uploadRoute ile aynı) -> (from,to,km) ----
+    suspend fun uploadRoute(bytes: ByteArray): Triple<Double, Double, Double>? = withContext(Dispatchers.IO) {
+        try {
+            val c = (URL("$API/api/rides/upload").openConnection() as HttpURLConnection)
+            c.requestMethod = "POST"; c.connectTimeout = 15000; c.readTimeout = 40000
+            c.setRequestProperty("Authorization", "Bearer $token")
+            c.setRequestProperty("Content-Type", "application/octet-stream")
+            c.doOutput = true; c.outputStream.use { it.write(bytes) }
+            if (c.responseCode !in 200..299) return@withContext null
+            val o = JSONObject(c.inputStream.bufferedReader().readText())
+            Triple(o.optDouble("from"), o.optDouble("to"), o.optDouble("km", 0.0))
+        } catch (e: Exception) { null }
+    }
+
     // ---- Sohbet (Harita sekmesi içi) ----
     suspend fun conversations(): List<Convo> {
         val d = req("/api/chat/convos") ?: return emptyList()

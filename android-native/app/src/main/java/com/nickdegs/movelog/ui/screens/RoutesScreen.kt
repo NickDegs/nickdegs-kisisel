@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.nickdegs.movelog.data.Ride
 import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.L
@@ -45,11 +46,38 @@ fun RoutesScreen(store: Store) {
     var loaded by remember { mutableStateOf(false) }
     var playUrl by remember { mutableStateOf<String?>(null) }
     var genRide by remember { mutableStateOf<Ride?>(null) }
+    var uploading by remember { mutableStateOf(false) }
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { rides = store.rides(); loaded = true }
 
+    // GPX/TCX dosya seçici (akıllı saat/Strava) -> yükle -> üretim sheet'i
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            uploading = true
+            val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                ctx.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }
+            val res = if (bytes != null) store.uploadRoute(bytes) else null
+            uploading = false
+            if (res != null) {
+                genRide = Ride("upload", "", "bike", null, 0.0, res.first, res.second, null, null, null, false, false)
+                rides = store.rides()
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Move Log", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.White,
-            modifier = Modifier.padding(vertical = 8.dp))
+        Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Move Log", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = { if (store.premium) picker.launch("*/*") }, enabled = !uploading) {
+                if (uploading) CircularProgressIndicator(Modifier.size(20.dp), color = Brand.accent, strokeWidth = 2.dp)
+                else Icon(Icons.Filled.FileUpload, L("GPX/TCX yükle", "Upload GPX/TCX"), tint = Brand.accent)
+            }
+        }
         if (loaded && rides.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Text(L("Henüz rota yok", "No routes yet"), color = Color(0xFF9AA4B2))
