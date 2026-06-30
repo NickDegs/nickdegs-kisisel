@@ -1,5 +1,6 @@
 package com.nickdegs.movelog.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -47,6 +48,7 @@ fun RoutesScreen(store: Store) {
     var playUrl by remember { mutableStateOf<String?>(null) }
     var genRide by remember { mutableStateOf<Ride?>(null) }
     var uploading by remember { mutableStateOf(false) }
+    var typeMenuFor by remember { mutableStateOf<String?>(null) }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(Unit) { rides = store.rides(); loaded = true }
 
@@ -91,7 +93,20 @@ fun RoutesScreen(store: Store) {
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(dayTime(r), color = Color.White, fontWeight = FontWeight.SemiBold)
-                            Text(typeLabel(r.type), color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                            Box {
+                                Row(Modifier.clickable { typeMenuFor = r.id }, verticalAlignment = Alignment.CenterVertically) {
+                                    Text(typeLabel(r.type), color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                                    Icon(Icons.Filled.ArrowDropDown, null, tint = Color(0xFF9AA4B2), modifier = Modifier.size(16.dp))
+                                }
+                                DropdownMenu(expanded = typeMenuFor == r.id, onDismissRequest = { typeMenuFor = null }) {
+                                    listOf("moto", "car", "bike", "run", "walk").forEach { t ->
+                                        DropdownMenuItem(text = { Text(typeLabel(t)) }, onClick = {
+                                            typeMenuFor = null
+                                            scope.launch { if (store.setRideType(r.id, t)) rides = store.rides() }
+                                        })
+                                    }
+                                }
+                            }
                         }
                         if (r.rendering) {
                             Text(L("Hazırlanıyor…", "Rendering…"), color = Brand.accent, fontSize = 13.sp)
