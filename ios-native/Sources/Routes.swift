@@ -1,6 +1,7 @@
 import SwiftUI
 import AVKit
 import UIKit
+import UniformTypeIdentifiers
 
 // .sheet(item:) için: player hazır olmadan sheet açılmasın (ilk dokunuşta kara ekran bug'ı).
 struct PlayerBox: Identifiable { let id = UUID(); let player: AVPlayer }
@@ -15,6 +16,11 @@ struct RoutesView: View {
     @State private var savedId: String? = nil
     @State private var pendingDelete: Ride?
     @State private var pollTask: Task<Void, Never>? = nil   // render/yeni rota varken otomatik yenile
+    @AppStorage("nd_premium") private var premium = false
+    @State private var showImporter = false   // GPX/TCX dosya seçici
+    @State private var uploading = false
+    @State private var showPaywall = false
+    @State private var uploadErr: String?
 
     // Listeyi tazele: yeni (oto-algılanan) sürüşler + biten render'lar hemen görünsün.
     func reload() async {
@@ -123,9 +129,49 @@ struct RoutesView: View {
                 .refreshable { await reload() }
             }
             .navigationTitle("Move Log")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    // GPX/TCX yükle (akıllı saat / Strava dosyasından video) — premium
+                    Button {
+                        if premium { showImporter = true } else { showPaywall = true }
+                    } label: {
+                        if uploading { ProgressView() }
+                        else { Image(systemName: "tray.and.arrow.up").font(.system(size: 16, weight: .semibold)) }
+                    }.disabled(uploading)
+                }
+            }
         }
         .onAppear { Task { await reload() } }      // sekmeye her gelişte tazele (yeni oto-rota hemen görünsün)
         .onDisappear { pollTask?.cancel(); pollTask = nil }
+        .fileImporter(isPresented: $showImporter,
+                      allowedContentTypes: [UTType(filenameExtension: "gpx") ?? .xml,
+                                            UTType(filenameExtension: "tcx") ?? .xml, .xml],
+                      allowsMultipleSelection: false) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            Task {
+                let ok = url.startAccessingSecurityScopedResource()
+                defer { if ok { url.stopAccessingSecurityScopedResource() } }
+                guard let data = try? Data(contentsOf: url) else {
+                    await MainActor.run { uploadErr = L("Dosya okunamadı","Couldn't read the file") }; return
+                }
+                await MainActor.run { uploading = true }
+                let res = await store.uploadRoute(data)
+                await MainActor.run {
+                    uploading = false
+                    if let r = res {
+                        // yükleme tamam -> direkt üretim seçenekleri (uploaded_tracks backend'de hazır)
+                        createRide = Ride(id: "upload_\(Int(r.from))", date: "", type: "bike", mode: nil, size: 0, ts: r.from, to: r.to)
+                        Task { await reload() }   // Rotalar'da da görünsün
+                    } else {
+                        uploadErr = L("Yükleme başarısız — geçerli bir GPX/TCX dosyası seç","Upload failed — pick a valid GPX/TCX file")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
+        .alert(uploadErr ?? "", isPresented: Binding(get: { uploadErr != nil }, set: { if !$0 { uploadErr = nil } })) {
+            Button("OK") { uploadErr = nil }
+        }
         .confirmationDialog(L("Bu videoyu geçmişten sil?", "Delete this video?"),
                             isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }),
                             presenting: pendingDelete) { r in

@@ -202,6 +202,22 @@ struct Convo: Codable, Identifiable, Hashable {
               let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return (o["ok"] as? Bool) ?? false
     }
+    // GPX/TCX dosyası yükle (ham body) -> backend parse eder, Rotalar'a ekler. (from,to) döner.
+    // 402 = premium değil, 400 = geçersiz/iz yok. Dönüş nil ise hata.
+    func uploadRoute(_ data: Data) async -> (from: Double, to: Double, km: Double)? {
+        guard !token.isEmpty else { return nil }
+        var r = URLRequest(url: URL(string: API + "/rides/upload")!)
+        r.httpMethod = "POST"
+        r.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        r.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
+        r.httpBody = data
+        guard let (d, resp) = try? await URLSession.shared.data(for: r),
+              let h = resp as? HTTPURLResponse, h.statusCode == 200,
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any],
+              let f = (o["from"] as? NSNumber)?.doubleValue,
+              let t = (o["to"] as? NSNumber)?.doubleValue else { return nil }
+        return (f, t, (o["km"] as? NSNumber)?.doubleValue ?? 0)
+    }
     // Cihazda lokal render için GPS izini çek
     func track(from: Double, to: Double) async -> [LocalRouteVideo.Pt] {
         guard let d = try? await req("/api/track?frm=\(from)&to=\(to)"),

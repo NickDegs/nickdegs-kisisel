@@ -88,6 +88,9 @@ private let TRANS: [String: [String:String]] = [
  // --- Araba tipi + videosuz rota (2026-06-29) ---
  "Car": ["tr":"Araba","de":"Auto","fr":"Voiture","es":"Coche","it":"Auto","pt":"Carro","ru":"Машина","ja":"車","zh":"汽车","ko":"자동차","ar":"سيارة"],
  "Create video": ["tr":"Video oluştur","de":"Video erstellen","fr":"Créer une vidéo","es":"Crear vídeo","it":"Crea video","pt":"Criar vídeo","ru":"Создать видео","ja":"ビデオを作成","zh":"生成视频","ko":"동영상 만들기","ar":"إنشاء فيديو"],
+ // --- GPX/TCX yükleme (2026-06-30) ---
+ "Couldn't read the file": ["tr":"Dosya okunamadı","de":"Datei konnte nicht gelesen werden","fr":"Impossible de lire le fichier","es":"No se pudo leer el archivo","it":"Impossibile leggere il file","pt":"Não foi possível ler o arquivo","ru":"Не удалось прочитать файл","ja":"ファイルを読み込めませんでした","zh":"无法读取文件","ko":"파일을 읽을 수 없습니다","ar":"تعذّر قراءة الملف"],
+ "Upload failed — pick a valid GPX/TCX file": ["tr":"Yükleme başarısız — geçerli bir GPX/TCX dosyası seç","de":"Upload fehlgeschlagen – wähle eine gültige GPX/TCX-Datei","fr":"Échec de l'import — choisis un fichier GPX/TCX valide","es":"Error al subir — elige un archivo GPX/TCX válido","it":"Caricamento fallito — scegli un file GPX/TCX valido","pt":"Falha no envio — escolha um arquivo GPX/TCX válido","ru":"Ошибка загрузки — выберите корректный файл GPX/TCX","ja":"アップロード失敗 — 有効なGPX/TCXファイルを選んでください","zh":"上传失败 — 请选择有效的 GPX/TCX 文件","ko":"업로드 실패 — 올바른 GPX/TCX 파일을 선택하세요","ar":"فشل الرفع — اختر ملف GPX/TCX صالح"],
 ]
 
 func L(_ tr: String, _ en: String) -> String {
