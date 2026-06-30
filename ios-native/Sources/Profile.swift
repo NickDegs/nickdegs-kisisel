@@ -41,6 +41,8 @@ struct ProfileView: View {
     @State private var newName = ""
     @State private var sumEnabled = true
     @State private var sumHour = 21
+    @State private var sumVid = SummaryVid()
+    @State private var showSumVid = false
     @State private var sumQueued = false
 
     var body: some View {
@@ -185,7 +187,7 @@ struct ProfileView: View {
                                 set: { on in
                                     if premium {
                                         sumEnabled = on
-                                        Task { await store.setSummarySettings(enabled: on, hour: sumHour) }
+                                        Task { await store.setSummarySettings(SummaryCfg(enabled: on, hour: sumHour, video: sumVid)) }
                                     } else { showPaywall = true }
                                 })) {
                                 VStack(alignment: .leading, spacing: 2) {
@@ -208,10 +210,20 @@ struct ProfileView: View {
                                     Spacer()
                                     Picker("", selection: Binding(
                                         get: { sumHour },
-                                        set: { h in sumHour = h; Task { await store.setSummarySettings(enabled: sumEnabled, hour: h) } })) {
+                                        set: { h in sumHour = h; Task { await store.setSummarySettings(SummaryCfg(enabled: sumEnabled, hour: h, video: sumVid)) } })) {
                                         ForEach(0..<24, id: \.self) { h in Text(String(format: "%02d:00", h)).tag(h) }
                                     }.pickerStyle(.menu).tint(Brand.accent)
                                 }
+                                Divider().padding(.vertical, 10)
+                                Button { showSumVid = true } label: {
+                                    HStack {
+                                        Label(L("Özet videosu ayarları","Summary video settings"), systemImage: "film")
+                                            .font(.system(size: 15))
+                                        Spacer()
+                                        Text("\(sumVid.mode) · \(sumVid.aspect)").font(.caption).foregroundStyle(.secondary)
+                                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }.tint(.primary)
                             }
                         }.padding(14).glassPanel(18)
                         .onTapGesture { if !premium { showPaywall = true } }
@@ -258,7 +270,7 @@ struct ProfileView: View {
         .task {
             prof = await store.profile(); friends = await store.friends(); stats = await store.stats()
             if prof?.premium == true { UserDefaults.standard.set(true, forKey: "nd_gift"); premium = true }
-            let s = await store.summarySettings(); sumEnabled = s.enabled; sumHour = s.hour
+            let s = await store.summarySettings(); sumEnabled = s.enabled; sumHour = s.hour; sumVid = s.video
             if AppEnv.demo {
                 try? await Task.sleep(for: .milliseconds(450))
                 if AppEnv.screen == "paywall" { showPaywall = true }
@@ -268,6 +280,11 @@ struct ProfileView: View {
         .sheet(isPresented: $showAvatar) { AvatarSheet(onDone: { Task { prof = await store.profile() } }) }
         .sheet(isPresented: $showAddFriend) { AddFriendSheet(onDone: { Task { friends = await store.friends() } }) }
         .sheet(isPresented: $showPaywall) { PaywallSheet(premium: $premium) }
+        .sheet(isPresented: $showSumVid) {
+            SummaryVideoSheet(video: $sumVid) {
+                Task { await store.setSummarySettings(SummaryCfg(enabled: sumEnabled, hour: sumHour, video: sumVid)) }
+            }
+        }
         .confirmationDialog(L("Hesabını kalıcı olarak silmek istiyor musun? Tüm rota, sohbet ve profil verin silinir.",
                               "Permanently delete your account? All your routes, chats and profile data will be removed."),
                             isPresented: $showDelete, titleVisibility: .visible) {
@@ -619,5 +636,50 @@ struct PaywallSheet: View {
             }.frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain).padding(16).glassPanel(20).disabled(iap.working)
+    }
+}
+
+// Gün özeti videosu render ayarları (rotalardaki GenerateSheet'in karşılığı)
+struct SummaryVideoSheet: View {
+    @Binding var video: SummaryVid
+    var onDone: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    private let colors = ["#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00"]
+    var body: some View {
+        NavigationStack {
+            Form {
+                Picker(L("Görünüm","Mode"), selection: $video.mode) {
+                    Text(L("Düz","Flat")).tag("flat"); Text("Flyover").tag("flyover"); Text(L("3B","3D")).tag("3d")
+                }
+                Picker(L("Süre","Duration"), selection: $video.speed) {
+                    Text(L("Kısa","Short")).tag("fast"); Text(L("Orta","Medium")).tag("medium")
+                    Text(L("Uzun","Long")).tag("slow"); Text(L("Otonom","Auto")).tag("auto")
+                }
+                Picker(L("En-boy","Aspect"), selection: $video.aspect) {
+                    Text("16:9").tag("16:9"); Text("9:16").tag("9:16")
+                }
+                Picker(L("Kamera","Camera"), selection: $video.cam) {
+                    Text(L("Yakın","Near")).tag("yakin"); Text(L("Orta","Medium")).tag("orta"); Text(L("Uzak","Far")).tag("uzak")
+                }
+                Picker(L("Müzik","Music"), selection: $video.music) {
+                    Text(L("Yok","None")).tag(""); Text("Chill").tag("stock:chill"); Text("Epic").tag("stock:epic")
+                    Text("Upbeat").tag("stock:upbeat"); Text("Lo-Fi").tag("stock:lofi"); Text("Cinematic").tag("stock:cinematic")
+                }
+                Section(L("Rota rengi","Route color")) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            ForEach(colors, id: \.self) { hex in
+                                Circle().fill(Color(hex: hex)).frame(width: 32, height: 32)
+                                    .overlay(Circle().strokeBorder(.white, lineWidth: video.line.caseInsensitiveCompare(hex) == .orderedSame ? 3 : 0))
+                                    .onTapGesture { video.line = hex }
+                            }
+                        }.padding(.vertical, 4)
+                    }
+                }
+            }
+            .navigationTitle(L("Özet videosu","Summary video"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(L("Tamam","Done")) { onDone(); dismiss() } } }
+        }
     }
 }

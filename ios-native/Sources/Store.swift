@@ -23,6 +23,8 @@ struct Position: Codable, Identifiable, Hashable {
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
 struct Announcement: Identifiable { var title: String; var body: String; var url: String; var ts: Int; var id: Int { ts } }
 struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var videoId: String? = nil; var id: String { date } }
+struct SummaryVid: Equatable { var mode = "flyover"; var speed = "medium"; var aspect = "16:9"; var cam = "orta"; var music = ""; var line = "#00E5FF" }
+struct SummaryCfg { var enabled = true; var hour = 21; var video = SummaryVid() }
 struct Friend: Codable, Identifiable, Hashable {
     var username: String; var name: String?; var avatar: Avatar?; var online: Bool?
     var id: String { username }
@@ -319,16 +321,26 @@ enum AuthGate { case checking, valid, needLogin, offline }
         UserDefaults.standard.set(true, forKey: "nd_premium")
         return true
     }
-    // Günlük özet ayarları (premium)
-    func summarySettings() async -> (enabled: Bool, hour: Int) {
+    // Günlük özet ayarları (premium) + gün özeti VİDEOSU render seçenekleri (rotalar gibi)
+    func summarySettings() async -> SummaryCfg {
         guard let d = try? await req("/api/summary/settings"),
-              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return (true, 21) }
-        return ((o["enabled"] as? Bool) ?? true, (o["hour"] as? Int) ?? 21)
+              let o = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return SummaryCfg() }
+        var c = SummaryCfg()
+        c.enabled = (o["enabled"] as? Bool) ?? true
+        c.hour = (o["hour"] as? Int) ?? 21
+        if let v = o["video"] as? [String:Any] {
+            c.video = SummaryVid(mode: v["mode"] as? String ?? "flyover", speed: v["speed"] as? String ?? "medium",
+                                 aspect: v["aspect"] as? String ?? "16:9", cam: v["cam"] as? String ?? "orta",
+                                 music: v["music"] as? String ?? "", line: v["line"] as? String ?? "#00E5FF")
+        }
+        return c
     }
     @discardableResult
-    func setSummarySettings(enabled: Bool, hour: Int) async -> Bool {
+    func setSummarySettings(_ cfg: SummaryCfg) async -> Bool {
+        let video: [String:Any] = ["mode": cfg.video.mode, "speed": cfg.video.speed, "aspect": cfg.video.aspect,
+                                   "cam": cfg.video.cam, "music": cfg.video.music, "line": cfg.video.line]
         guard let d = try? await req("/api/summary/settings", method: "PUT",
-                                     body: ["enabled": enabled, "hour": hour]),
+                                     body: ["enabled": cfg.enabled, "hour": cfg.hour, "video": video]),
               let _ = try? JSONSerialization.jsonObject(with: d) as? [String:Any] else { return false }
         return true
     }
