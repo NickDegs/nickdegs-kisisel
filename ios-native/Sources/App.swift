@@ -35,17 +35,17 @@ struct RootView: View {
     @State private var ann: Announcement?
     @AppStorage("nd_ann_seen") private var annSeen = 0
     static func initialTab() -> Int {
-        switch AppEnv.screen { case "videos": return 1; case "chat": return 2; case "gps","map": return 3; case "stats": return 4; case "profile","paywall","avatar": return 5; default: return 0 }
+        switch AppEnv.screen { case "videos": return 1; case "stats": return 2; case "chat","gps","map": return 3; case "profile","paywall","avatar": return 4; default: return 0 }
     }
     var body: some View {
         TabView(selection: $sel) {
             RoutesView().tabItem { Label(L("Rotalar","Routes"), systemImage: "map") }.tag(0)
             // not: aşağıda .onChange ile "Video oluştur" sonrası otomatik Videolarım'a geçilir
             VideosView().tabItem { Label(L("Videolarım","My Videos"), systemImage: "film.stack") }.tag(1)
-            ChatListView().tabItem { Label(L("Sohbet","Chat"), systemImage: "bubble.left.and.bubble.right") }.tag(2)
-            MapTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(3)
-            SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(4)
-            ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(5)
+            SummariesView().tabItem { Label(L("Özet","Summary"), systemImage: "doc.text.magnifyingglass") }.tag(2)
+            // Harita: canlı konum + Sohbet tek sekmede (segment geçişli) -> çirkin "More" menüsü yok (tam 5 sekme)
+            MapChatTab().tabItem { Label(L("Harita","Map"), systemImage: "location") }.tag(3)
+            ProfileView().tabItem { Label(L("Profil","Profile"), systemImage: "person.crop.circle") }.tag(4)
         }
         .onChange(of: store.jumpToVideos) { _, v in
             if v { sel = 1; store.jumpToVideos = false }   // "Video oluştur" -> Videolarım'a geç ("Hazırlanıyor" görünür)
