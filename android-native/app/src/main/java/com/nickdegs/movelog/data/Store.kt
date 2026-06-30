@@ -230,11 +230,21 @@ class Store(app: Application) : AndroidViewModel(app) {
 
     // ---- Video üret (iOS generateRide ile aynı gövde) ----
     suspend fun generate(from: Double, to: Double, type: String, mode: String, aspect: String,
-                         speed: String, camdist: String = "orta"): Boolean {
+                         speed: String, camdist: String = "orta", music: String = "", line: String = ""): Boolean {
         val b = JSONObject().put("from", from).put("to", to).put("type", type).put("mode", mode)
             .put("aspect", aspect).put("speed", speed).put("premium", true).put("camdist", camdist)
+        if (music.isNotEmpty()) b.put("music", music)
+        if (line.isNotEmpty()) b.put("line", line)
         val d = req("/api/rides/generate", "POST", b) ?: return false
         return JSONObject(d).optBoolean("ok", false)
+    }
+
+    suspend fun musicList(): List<Pair<String, String>> {
+        val d = req("/api/music") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("stock") ?: JSONArray()
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i); o.optString("id") to o.optString("name")
+        }
     }
 
     // ---- Rota kaydı: Traccar cihaz id + OsmAnd ingest URL (iOS /api/tracker) ----
