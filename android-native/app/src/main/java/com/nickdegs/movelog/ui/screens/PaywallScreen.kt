@@ -31,7 +31,7 @@ fun PaywallScreen(store: Store, onClose: () -> Unit) {
     val activity = ctx as? Activity
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     // satın alma -> token'ı SUNUCUDA doğrula (client tek başına premium açamaz)
-    val billing = remember { Billing(ctx) { token -> scope.launch { store.verifyGooglePurchase(token) } } }
+    val billing = remember { Billing(ctx, onPurchase = { token -> scope.launch { store.verifyGooglePurchase(token) } }) }
     var sel by remember { mutableStateOf(1) }   // 0=aylık, 1=yıllık (varsayılan)
 
     val benefits = listOf(
