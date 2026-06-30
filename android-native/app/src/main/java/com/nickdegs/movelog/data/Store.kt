@@ -36,6 +36,7 @@ class Store(app: Application) : AndroidViewModel(app) {
     var token by mutableStateOf(prefs.getString("nd_token", "") ?: "")
         private set
     var me by mutableStateOf("")
+    var displayName by mutableStateOf("")
     var premium by mutableStateOf(prefs.getBoolean("nd_premium", false))
     var loginError by mutableStateOf(false)
 
@@ -144,7 +145,32 @@ class Store(app: Application) : AndroidViewModel(app) {
         val d = req("/api/profile") ?: return
         val o = JSONObject(d)
         me = o.optString("username", me)
+        displayName = o.optString("name", displayName)
         persistPremium(o.optBoolean("premium", premium))
+    }
+
+    // ---- İsim / Arkadaşlar (Profil) ----
+    suspend fun setName(name: String): Boolean {
+        val d = req("/api/profile", "PUT", JSONObject().put("name", name)) ?: return false
+        displayName = JSONObject(d).optString("name", name)
+        return true
+    }
+
+    suspend fun friends(): List<Convo> {
+        val d = req("/api/friends") ?: return emptyList()
+        val arr = JSONObject(d).optJSONArray("friends") ?: JSONArray()
+        return (0 until arr.length()).map { i ->
+            val o = arr.getJSONObject(i)
+            Convo(o.optString("username", ""), o.optString("name", null),
+                o.optBoolean("online", false), 0)
+        }
+    }
+
+    suspend fun addFriend(username: String): Boolean {
+        val u = username.trim().removePrefix("@")
+        if (u.isEmpty()) return false
+        val d = req("/api/friends", "POST", JSONObject().put("username", u)) ?: return false
+        return JSONObject(d).optBoolean("ok", false)
     }
 
     // ---- Rotalar ----
