@@ -264,6 +264,12 @@ class Store(app: Application) : AndroidViewModel(app) {
         return ok
     }
 
+    // Boost (consumable) -> o gün render limiti +1 kat
+    suspend fun verifyGoogleBoost(token: String): Boolean {
+        val d = req("/api/iap/google/boost", "POST", JSONObject().put("token", token)) ?: return false
+        return JSONObject(d).optBoolean("ok", false)
+    }
+
     // ---- GPX/TCX yükle (ham body; iOS uploadRoute ile aynı) -> (from,to,km) ----
     suspend fun uploadRoute(bytes: ByteArray): Triple<Double, Double, Double>? = withContext(Dispatchers.IO) {
         try {

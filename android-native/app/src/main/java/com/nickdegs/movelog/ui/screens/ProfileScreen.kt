@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import com.nickdegs.movelog.data.Billing
 import com.nickdegs.movelog.data.Convo
 import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.L
@@ -26,10 +27,17 @@ import com.nickdegs.movelog.ui.theme.Brand
 @Composable
 fun ProfileScreen(store: Store) {
     val scope = rememberCoroutineScope()
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     var showPaywall by remember { mutableStateOf(false) }
     var editName by remember { mutableStateOf(false) }
     var addFriend by remember { mutableStateOf(false) }
     var friends by remember { mutableStateOf<List<Convo>>(emptyList()) }
+    var boostMsg by remember { mutableStateOf<String?>(null) }
+    val billing = remember {
+        Billing(ctx, onPurchase = {}, onBoost = { t ->
+            scope.launch { if (store.verifyGoogleBoost(t)) boostMsg = L("Bugünkü limitin 2 katına çıktı 🚀", "Today's limit doubled 🚀") }
+        })
+    }
     LaunchedEffect(Unit) { store.loadProfile(); friends = store.friends() }
     val shown = store.displayName.ifBlank { store.me }.ifBlank { "Move Log" }
 
@@ -68,6 +76,25 @@ fun ProfileScreen(store: Store) {
                         Text(if (store.premium) L("Tüm özellikler açık", "All features unlocked")
                              else L("3B videolar, filigransız, müzik", "3D videos, no watermark, music"),
                             color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                    }
+                }
+            }
+        }
+
+        // Günlük 2× Boost (consumable) — premium üyeye, ürün Play'de yüklüyse
+        if (store.premium && billing.boost != null) {
+            item {
+                Surface(color = Brand.card, shape = RoundedCornerShape(22.dp),
+                    modifier = Modifier.fillMaxWidth().clickable { (ctx as? android.app.Activity)?.let { billing.buyBoost(it) } }) {
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Filled.Bolt, null, tint = Brand.accent)
+                        Spacer(Modifier.width(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(L("Günlük 2× Boost", "Daily 2× Boost"), color = Color.White, fontWeight = FontWeight.Bold)
+                            Text(boostMsg ?: L("Bugünkü video limitini ikiye katla", "Double today's video limit"),
+                                color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                        }
+                        Text(billing.boostPrice(), color = Brand.accent, fontWeight = FontWeight.Bold)
                     }
                 }
             }
