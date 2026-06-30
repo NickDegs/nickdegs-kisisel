@@ -1,5 +1,7 @@
 import SwiftUI
 import CoreLocation
+import DeviceCheck
+import CryptoKit
 
 let API = "https://kisisel-api.nickdegs.com"
 
@@ -67,6 +69,7 @@ enum AuthGate { case checking, valid, needLogin, offline }
                     me = (o["username"] as? String) ?? me
                 }
                 gate = .valid
+                Task { await attestIfPossible() }   // App Attest (fire-and-forget; fail-open, kilitlemez)
             } else if code == 401 || code == 403 {
                 logout(); gate = .needLogin            // geçersiz/iptal/kopya token
             } else {
@@ -74,6 +77,25 @@ enum AuthGate { case checking, valid, needLogin, offline }
             }
         } catch {
             gate = .offline                            // internet yok -> uygulama açılmaz
+        }
+    }
+
+    // Apple App Attest — uygulamanın gerçek (kurcalanmamış, App Store) olduğunu Apple'a doğrulatır.
+    // FAIL-OPEN: desteklenmiyor/entitlement yok/hata -> sessizce geçer, kullanıcıyı ASLA kilitlemez.
+    func attestIfPossible() async {
+        guard DCAppAttestService.shared.isSupported else { return }
+        guard let cd = try? await req("/api/attest/challenge"),
+              let o = try? JSONSerialization.jsonObject(with: cd) as? [String:Any],
+              let challenge = o["challenge"] as? String else { return }
+        let svc = DCAppAttestService.shared
+        do {
+            let keyId = try await svc.generateKey()
+            let clientDataHash = Data(SHA256.hash(data: Data(challenge.utf8)))
+            let attestation = try await svc.attestKey(keyId, clientDataHash: clientDataHash)
+            _ = try? await req("/api/attest", method: "POST",
+                               body: ["attestation": attestation.base64EncodedString(), "keyId": keyId])
+        } catch {
+            // App Attest desteklenmiyor / entitlement yok / hata -> sessizce geç (zarar yok)
         }
     }
 
