@@ -60,4 +60,5 @@ dependencies {
     implementation("com.google.android.gms:play-services-maps:19.0.0")
     implementation("com.google.maps.android:maps-compose:6.1.0")
     implementation("com.android.billingclient:billing-ktx:7.1.1")
+    implementation("com.google.android.play:integrity:1.4.0")   // Play Integrity (anti-tamper/sideload)
 }

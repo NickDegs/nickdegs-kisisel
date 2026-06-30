@@ -170,6 +170,14 @@ class Store(app: Application) : AndroidViewModel(app) {
         return JSONObject(d).optBoolean("ok", false)
     }
 
+    // ---- Play satın almasını SUNUCUDA doğrula (client'a güvenme) -> premium ----
+    suspend fun verifyGooglePurchase(token: String): Boolean {
+        val d = req("/api/iap/google", "POST", JSONObject().put("token", token)) ?: return false
+        val ok = JSONObject(d).optBoolean("ok", false)
+        if (ok) persistPremium(true)
+        return ok
+    }
+
     // ---- GPX/TCX yükle (ham body; iOS uploadRoute ile aynı) -> (from,to,km) ----
     suspend fun uploadRoute(bytes: ByteArray): Triple<Double, Double, Double>? = withContext(Dispatchers.IO) {
         try {

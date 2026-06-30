@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.android.billingclient.api.ProductDetails
+import kotlinx.coroutines.launch
 import com.nickdegs.movelog.data.Billing
 import com.nickdegs.movelog.data.Store
 import com.nickdegs.movelog.ui.L
@@ -28,7 +29,9 @@ import com.nickdegs.movelog.ui.theme.Brand
 fun PaywallScreen(store: Store, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val activity = ctx as? Activity
-    val billing = remember { Billing(ctx) { store.persistPremium(true) } }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    // satın alma -> token'ı SUNUCUDA doğrula (client tek başına premium açamaz)
+    val billing = remember { Billing(ctx) { token -> scope.launch { store.verifyGooglePurchase(token) } } }
     var sel by remember { mutableStateOf(1) }   // 0=aylık, 1=yıllık (varsayılan)
 
     val benefits = listOf(

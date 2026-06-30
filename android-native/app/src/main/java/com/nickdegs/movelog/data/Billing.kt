@@ -10,7 +10,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 // Google Play Billing — "premium" aboneliği (monthly/yearly base plan). iOS StoreKit karşılığı.
-class Billing(context: Context, private val onPremium: () -> Unit) {
+class Billing(context: Context, private val onPurchase: (purchaseToken: String) -> Unit) {
     var monthly by mutableStateOf<Pair<ProductDetails, String>?>(null)   // (ürün, offerToken)
     var yearly by mutableStateOf<Pair<ProductDetails, String>?>(null)
     var ready by mutableStateOf(false)
@@ -69,7 +69,7 @@ class Billing(context: Context, private val onPremium: () -> Unit) {
                 AcknowledgePurchaseParams.newBuilder().setPurchaseToken(p.purchaseToken).build()
             ) {}
         }
-        onPremium()   // entitlement aç (backend Play doğrulaması ayrıca eklenecek)
+        onPurchase(p.purchaseToken)   // SUNUCUDA doğrula -> premium (client tek başına açamaz)
     }
 
     private fun restore() {
