@@ -79,6 +79,14 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
                         .clickable { line = "glass" }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.WaterDrop, L("Cam", "Glass"), tint = Color(0xCCFFFFFF), modifier = Modifier.size(17.dp))
                     }
+                    // Renksiz tam şeffaf (en minimal cam — basit görünüm) seçeneği
+                    Box(Modifier.size(34.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(Color(0x14FFFFFF))
+                        .border(if (line == "clear") 3.dp else 1.dp, if (line == "clear") Color.White else Color(0x66FFFFFF), androidx.compose.foundation.shape.CircleShape)
+                        .clickable { line = "clear" }, contentAlignment = Alignment.Center) {
+                        Box(Modifier.size(20.dp).border(1.dp, Color(0x88FFFFFF), androidx.compose.foundation.shape.CircleShape))
+                    }
                     lineColors.forEach { hex ->
                         Box(Modifier.size(34.dp)
                             .clip(androidx.compose.foundation.shape.CircleShape)

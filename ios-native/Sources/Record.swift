@@ -141,6 +141,13 @@ struct GenerateSheet: View {
                         }
                         .overlay(Circle().strokeBorder(.white.opacity(lineColor == "glass" ? 1 : 0.5), lineWidth: lineColor == "glass" ? 3 : 1))
                         .onTapGesture { lineColor = "glass" }
+                        // Renksiz tam şeffaf (en minimal cam — basit görünüm)
+                        ZStack {
+                            Circle().fill(Color.white.opacity(0.06)).frame(width: 30, height: 30)
+                            Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1).frame(width: 22, height: 22)
+                        }
+                        .overlay(Circle().strokeBorder(.white.opacity(lineColor == "clear" ? 1 : 0.5), lineWidth: lineColor == "clear" ? 3 : 1))
+                        .onTapGesture { lineColor = "clear" }
                         ForEach(["#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00"], id: \.self) { hex in
                             Circle().fill(Color(hex: hex))
                                 .frame(width: 30, height: 30)
