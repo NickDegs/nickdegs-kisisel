@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +25,8 @@ fun SummariesScreen(store: Store) {
     val scope = rememberCoroutineScope()
     var items by remember { mutableStateOf<List<Summary>>(emptyList()) }
     var busy by remember { mutableStateOf(false) }
+    var playUrl by remember { mutableStateOf<String?>(null) }
+    var genFor by remember { mutableStateOf<Summary?>(null) }
     suspend fun reload() { items = store.summaries() }
     LaunchedEffect(Unit) { reload() }
 
@@ -47,13 +49,39 @@ fun SummariesScreen(store: Store) {
         LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(items) { s ->
                 Surface(color = Brand.card, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(16.dp)) {
-                        Text(s.date, color = Brand.accent, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
-                        Spacer(Modifier.height(6.dp))
-                        Text(s.summary, color = Color.White, fontSize = 14.sp)
+                    Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(s.date, color = Brand.accent, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                            Spacer(Modifier.height(6.dp))
+                            Text(s.summary, color = Color.White, fontSize = 14.sp)
+                        }
+                        // Özet videosunu istediğin ayarlarla yeniden üret (rotalar gibi)
+                        if (s.from != null && s.to != null) {
+                            IconButton(onClick = { genFor = s }) {
+                                Icon(Icons.Filled.Tune, L("Video ayarları", "Video settings"), tint = Brand.accent)
+                            }
+                        }
+                        if (s.videoId != null) {
+                            IconButton(onClick = {
+                                scope.launch { playUrl = store.signedVideoUrl(s.videoId) ?: store.videoUrl(s.videoId) }
+                            }) { Icon(Icons.Filled.PlayCircle, null, tint = Brand.accent, modifier = Modifier.size(34.dp)) }
+                        }
                     }
                 }
             }
         }
+    }
+
+    genFor?.let { s ->
+        GenerateSheet(store, from = s.from ?: 0.0, to = s.to ?: 0.0, type = "moto") {
+            genFor = null
+            scope.launch { reload() }
+        }
+    }
+    playUrl?.let { url ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { playUrl = null },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) { VideoPlayer(url) }
     }
 }

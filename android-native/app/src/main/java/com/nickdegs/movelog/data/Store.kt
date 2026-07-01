@@ -265,7 +265,9 @@ class Store(app: Application) : AndroidViewModel(app) {
         return (0 until arr.length()).map { i ->
             val o = arr.getJSONObject(i)
             Summary(o.optString("date", ""), o.optString("summary", ""),
-                if (o.isNull("video_id")) null else o.optString("video_id", null))
+                if (o.isNull("video_id")) null else o.optString("video_id", null),
+                if (o.isNull("from")) null else o.optDouble("from"),
+                if (o.isNull("to")) null else o.optDouble("to"))
         }
     }
     suspend fun summarizeToday(): Boolean = req("/api/activities/summarize", "POST", JSONObject()) != null
@@ -377,4 +379,5 @@ data class Convo(val username: String, val name: String?, val online: Boolean, v
 data class Msg(val id: String, val frm: String, val text: String, val ts: Long)
 data class Position(val device: String, val lat: Double, val lon: Double, val speedKmh: Double, val online: Boolean)
 
-data class Summary(val date: String, val summary: String, val videoId: String?)
+data class Summary(val date: String, val summary: String, val videoId: String?,
+                   val from: Double? = null, val to: Double? = null)
