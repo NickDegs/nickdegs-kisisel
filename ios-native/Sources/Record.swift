@@ -106,8 +106,15 @@ struct GenerateSheet: View {
                         Text("16:9").tag("16:9"); Text("9:16").tag("9:16")
                     }.pickerStyle(.segmented)
 
-                    field(L("Rota rengi","Route color"))
+                    field(L("Rota çizgisi","Route line"))
                     HStack(spacing: 12) {
+                        // Çizgisiz (sadece nokta)
+                        ZStack {
+                            Circle().fill(Color(.systemGray4)).frame(width: 30, height: 30)
+                            Image(systemName: "line.diagonal").font(.system(size: 14)).foregroundStyle(.secondary)
+                        }
+                        .overlay(Circle().strokeBorder(.white, lineWidth: lineColor == "none" ? 3 : 0))
+                        .onTapGesture { lineColor = "none" }
                         ForEach(["#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00"], id: \.self) { hex in
                             Circle().fill(Color(hex: hex))
                                 .frame(width: 30, height: 30)

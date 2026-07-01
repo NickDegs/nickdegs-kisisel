@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -54,8 +57,16 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
             val musicOpts = listOf(Opt("", L("Yok", "None"))) + stock.map { Opt("stock:${it.first}", it.second) }
             Picker(L("Müzik", "Music"), musicOpts, music) { music = it }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(L("Rota rengi", "Route color"), color = Color(0xFF9AA4B2), fontSize = 13.sp)
+                Text(L("Rota çizgisi", "Route line"), color = Color(0xFF9AA4B2), fontSize = 13.sp)
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Çizgisiz (sadece nokta) seçeneği
+                    Box(Modifier.size(34.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(Color(0xFF2A3340))
+                        .border(if (line == "none") 3.dp else 0.dp, Color.White, androidx.compose.foundation.shape.CircleShape)
+                        .clickable { line = "none" }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.Block, L("Çizgisiz", "No line"), tint = Color(0xFF9AA4B2), modifier = Modifier.size(18.dp))
+                    }
                     lineColors.forEach { hex ->
                         Box(Modifier.size(34.dp)
                             .clip(androidx.compose.foundation.shape.CircleShape)
