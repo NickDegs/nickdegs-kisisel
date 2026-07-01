@@ -7,14 +7,20 @@ import StoreKit
 @MainActor final class IAP: ObservableObject {
     static let monthlyID = "com.nickdegs.kisisel.premium.monthly"
     static let yearlyID = "com.nickdegs.kisisel.premium.yearly"
+    static let ultraMonthlyID = "com.nickdegs.kisisel.ultra.monthly"   // ULTRA: Google 3D + kamera modları + Street View
+    static let ultraYearlyID = "com.nickdegs.kisisel.ultra.yearly"
     static let boostID = "com.nickdegs.kisisel.boost.daily2x"   // consumable: o gün limitleri 2x
-    static var ids: [String] { [monthlyID, yearlyID] }          // abonelikler (entitlement)
-    static var allIDs: [String] { [monthlyID, yearlyID, boostID] }
+    static var ultraIDs: [String] { [ultraMonthlyID, ultraYearlyID] }
+    static var ids: [String] { [monthlyID, yearlyID, ultraMonthlyID, ultraYearlyID] }   // TÜM abonelikler premium/purchased sağlar
+    static var allIDs: [String] { ids + [boostID] }
 
     @Published var monthly: Product?
     @Published var yearly: Product?
+    @Published var ultraMonthly: Product?
+    @Published var ultraYearly: Product?
     @Published var boost: Product?
     @Published var purchased = UserDefaults.standard.bool(forKey: "nd_premium")
+    @Published var ultra = UserDefaults.standard.bool(forKey: "nd_ultra")   // Ultra katman (Google 3D + kameralar + Street View)
     @Published var working = false
     @Published var boostWorking = false
     @Published var lastError: String?      // satın alma hatasını arayüze göster
@@ -43,7 +49,8 @@ import StoreKit
     private func apply(_ t: Transaction, jws: String) {
         if Self.ids.contains(t.productID), t.revocationDate == nil {
             setPurchased(true)
-            Task { await Self.report(jws) }   // backend premium (sunucu render kilidi açılır)
+            if Self.ultraIDs.contains(t.productID) { setUltra(true) }   // ultra abonelik -> ultra + premium
+            Task { await Self.report(jws) }   // backend premium/ultra (sunucu render kilidi açılır)
         }
     }
 
@@ -52,6 +59,8 @@ import StoreKit
             let prods = try await Product.products(for: Self.allIDs)
             monthly = prods.first { $0.id == Self.monthlyID }
             yearly = prods.first { $0.id == Self.yearlyID }
+            ultraMonthly = prods.first { $0.id == Self.ultraMonthlyID }
+            ultraYearly = prods.first { $0.id == Self.ultraYearlyID }
             boost = prods.first { $0.id == Self.boostID }
             loadMsg = prods.isEmpty
                 ? "Ürünler mağazadan gelmedi. App Store Connect → Business → Paid Apps anlaşması + banka/vergi tamamlanmalı (birkaç saat sürebilir)."
@@ -99,13 +108,14 @@ import StoreKit
     // Sahiplik/expiry tespiti (launch + restore). Yalnızca YÜKSELTİR ya da
     // gerçekten hiç entitlement yoksa düşürür; taze satın almayı ezmez.
     func refresh() async {
-        var owned = false
+        var owned = false, ultraOwned = false
         for await result in Transaction.currentEntitlements {
             if case .verified(let t) = result, Self.ids.contains(t.productID), t.revocationDate == nil {
                 owned = true
+                if Self.ultraIDs.contains(t.productID) { ultraOwned = true }
             }
         }
-        setPurchased(owned)
+        setPurchased(owned); setUltra(ultraOwned)
     }
 
     @discardableResult
@@ -142,6 +152,12 @@ import StoreKit
         let gift = UserDefaults.standard.bool(forKey: "nd_gift")   // hediye kodu kalıcı
         purchased = v || gift
         UserDefaults.standard.set(v || gift, forKey: "nd_premium")
+    }
+
+    private func setUltra(_ v: Bool) {
+        let gift = UserDefaults.standard.bool(forKey: "nd_gift_ultra")
+        ultra = v || gift
+        UserDefaults.standard.set(v || gift, forKey: "nd_ultra")
     }
 
     private func listenForTransactions() -> Task<Void, Never> {

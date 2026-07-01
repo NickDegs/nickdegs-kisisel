@@ -517,6 +517,8 @@ struct PaywallSheet: View {
                             }
                         }
 
+                        ultraBlock()   // premium üye -> Ultra'ya yükselt
+
                         Link(L("Aboneliği yönet","Manage subscription"),
                              destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
                             .font(.footnote).tint(Brand.accent).padding(.top, 6)
@@ -524,6 +526,7 @@ struct PaywallSheet: View {
                     } else {
                         if let y = iap.yearly { planButton(y, period: L("yıl","yr"), badge: L("EN AVANTAJLI","BEST VALUE")) }
                         if let m = iap.monthly { planButton(m, period: L("ay","mo"), badge: nil) }
+                        ultraBlock()
                         if iap.monthly == nil, iap.yearly == nil {
                             if AppEnv.demo {
                                 staticRow(L("Premium Yıllık","Premium Yearly"), "$29.99", L("yıl","yr"), L("EN AVANTAJLI","BEST VALUE"))
@@ -636,6 +639,23 @@ struct PaywallSheet: View {
             }.frame(maxWidth: .infinity)
         }
         .buttonStyle(.plain).padding(16).glassPanel(20).disabled(iap.working)
+    }
+
+    // ULTRA yükseltme bloğu: Google 3D + kamera modları + Street View (ultra değilse göster)
+    @ViewBuilder func ultraBlock() -> some View {
+        if !iap.ultra, iap.ultraMonthly != nil || iap.ultraYearly != nil {
+            VStack(spacing: 8) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles").foregroundStyle(Brand.gradient)
+                    Text(L("Ultra — Google 3D + Street View","Ultra — Google 3D + Street View")).font(.subheadline.bold())
+                }.padding(.top, 8)
+                Text(L("Foto-gerçekçi Google 3D harita, tüm kamera açıları (Arkadan) ve gerçek Street View sokak sürüşü.",
+                       "Photorealistic Google 3D map, all camera angles (Chase) and real first-person Street View driving."))
+                    .font(.caption2).foregroundStyle(.secondary).multilineTextAlignment(.center).padding(.horizontal, 8)
+                if let uy = iap.ultraYearly { planButton(uy, period: L("yıl","yr"), badge: "ULTRA") }
+                if let um = iap.ultraMonthly { planButton(um, period: L("ay","mo"), badge: nil) }
+            }
+        }
     }
 }
 

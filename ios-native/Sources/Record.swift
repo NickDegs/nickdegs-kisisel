@@ -97,22 +97,22 @@ struct GenerateSheet: View {
                              "Camera distance is a Premium option."))
                         .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)
 
-                    // KAMERA AÇISI (sadece 3D · Google, premium): takip açısı — yandan / arkadan / agresif Pac-Man
+                    // KAMERA AÇISI (sadece 3D · Google, ULTRA): takip açısı — yandan / arkadan / Sokak(Street View)
                     if mode == "3d" {
-                        field(L("Kamera açısı","Camera angle"))
+                        field(L("Kamera açısı","Camera angle") + (iap.ultra ? "" : " · Ultra"))
                         Picker("", selection: Binding(
-                            get: { premium ? camMode : "" },
-                            set: { v in if premium { camMode = v } else { showPaywall = true } })) {
+                            get: { iap.ultra ? camMode : "" },
+                            set: { v in if iap.ultra { camMode = v } else { showPaywall = true } })) {
                             Text(L("Yandan","Side")).tag("")
                             Text(L("Arkadan","Chase")).tag("chase")
                             Text(L("Sokak","Street")).tag("pacman")
                         }.pickerStyle(.segmented)
-                        Text(premium
-                             ? L("Yandan: klasik yan takip. Arkadan: tam arkadan hafif yukarıdan. Sokak: gerçek Google Street View — geçtiğin caddeyi ilk-kişi sokak görüntüsüyle gezer (ekstra ücretli).",
-                                 "Side: classic. Chase: from directly behind, slightly above. Street: real Google Street View — drives your route in first-person street imagery (extra cost).")
-                             : L("Kamera açısı Premium ile seçilebilir.",
-                                 "Camera angle is a Premium option."))
-                            .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)
+                        Text(iap.ultra
+                             ? L("Yandan: klasik yan takip. Arkadan: tam arkadan hafif yukarıdan. Sokak: gerçek Google Street View — geçtiğin caddeyi ilk-kişi sokak görüntüsüyle gezer.",
+                                 "Side: classic. Chase: from directly behind, slightly above. Street: real Google Street View — drives your route in first-person street imagery.")
+                             : L("Kamera açıları (Arkadan, Sokak/Street View) Ultra pakete dahildir.",
+                                 "Camera angles (Chase, Street View) are included in Ultra."))
+                            .font(.caption2).foregroundStyle(iap.ultra ? .secondary : Brand.accent)
                     }
 
                     field(L("Görünüm","Style"))
