@@ -22,7 +22,7 @@ struct Position: Codable, Identifiable, Hashable {
 }
 struct Profile: Codable { var username: String?; var name: String; var avatar: Avatar; var premium: Bool = false }
 struct Announcement: Identifiable { var title: String; var body: String; var url: String; var ts: Int; var id: Int { ts } }
-struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var videoId: String? = nil; var id: String { date } }
+struct ActivitySummary: Codable, Identifiable, Hashable { var date: String; var summary: String; var videoId: String? = nil; var from: Double? = nil; var to: Double? = nil; var id: String { date } }
 struct SummaryVid: Equatable { var mode = "flyover"; var speed = "medium"; var aspect = "16:9"; var cam = "orta"; var music = ""; var line = "#00E5FF" }
 struct SummaryCfg { var enabled = true; var hour = 21; var video = SummaryVid() }
 struct Friend: Codable, Identifiable, Hashable {

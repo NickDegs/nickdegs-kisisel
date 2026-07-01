@@ -10,6 +10,7 @@ struct SummariesView: View {
     @State private var busy = false
     @State private var note: String?
     @State private var playerBox: PlayerBox?
+    @State private var genSummary: ActivitySummary?   // özet videosunu seçeneklerle yeniden üret
 
     var body: some View {
         NavigationStack {
@@ -46,12 +47,22 @@ struct SummariesView: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                if let vid = s.videoId {   // o günün videosu varsa izle
-                                    Button { play(vid) } label: {
-                                        Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
-                                            .foregroundStyle(.white).frame(width: 40, height: 40)
-                                            .background(Brand.gradient, in: Circle())
-                                    }.buttonStyle(.plain)
+                                VStack(spacing: 8) {
+                                    if let vid = s.videoId {   // o günün videosu varsa izle
+                                        Button { play(vid) } label: {
+                                            Image(systemName: "play.fill").font(.system(size: 15, weight: .bold))
+                                                .foregroundStyle(.white).frame(width: 40, height: 40)
+                                                .background(Brand.gradient, in: Circle())
+                                        }.buttonStyle(.plain)
+                                    }
+                                    // Özet videosunu istediğin ayarlarla yeniden üret (rotalar gibi)
+                                    if s.from != nil && s.to != nil {
+                                        Button { if premium { genSummary = s } else { note = L("Bu özellik Premium'a özel.", "This feature is Premium.") } } label: {
+                                            Image(systemName: "slider.horizontal.3").font(.system(size: 15, weight: .semibold))
+                                                .foregroundStyle(Brand.accent).frame(width: 40, height: 40)
+                                                .background(.thinMaterial, in: Circle())
+                                        }.buttonStyle(.plain)
+                                    }
                                 }
                             }
                             .padding(14).glassPanel(18).smoothAppear()
@@ -63,6 +74,10 @@ struct SummariesView: View {
         }
         .task { items = await store.activities() }
         .sheet(isPresented: $showRange) { RangeSheet { from, to in Task { await genRange(from, to) } } }
+        .sheet(item: $genSummary, onDismiss: { Task { items = await store.activities() } }) { s in
+            GenerateSheet(from: s.from ?? 0, to: s.to ?? 0, type: "moto",
+                          mode: "flyover", aspect: "16:9", speed: "medium", rideId: s.videoId)
+        }
         .sheet(item: $playerBox) { box in
             VideoPlayer(player: box.player).ignoresSafeArea()
                 .onAppear { box.player.play() }.onDisappear { box.player.pause() }
