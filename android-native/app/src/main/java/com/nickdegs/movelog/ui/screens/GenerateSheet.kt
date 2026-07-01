@@ -34,6 +34,7 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
     var speed by remember { mutableStateOf("medium") }
     var aspect by remember { mutableStateOf("16:9") }
     var cam by remember { mutableStateOf("orta") }
+    var camAngle by remember { mutableStateOf("") }   // 3D kamera açısı: ""=yandan, chase, pacman
     var music by remember { mutableStateOf("") }
     var line by remember { mutableStateOf("#00E5FF") }
     var stock by remember { mutableStateOf<List<Pair<String, String>>>(emptyList()) }
@@ -45,6 +46,7 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
         Opt("slow", L("Uzun", "Long")), Opt("auto", L("Otonom", "Auto")))
     val aspects = listOf(Opt("16:9", "16:9"), Opt("9:16", "9:16"))
     val cams = listOf(Opt("yakin", L("Yakın", "Near")), Opt("orta", L("Orta", "Medium")), Opt("uzak", L("Uzak", "Far")))
+    val camAngles = listOf(Opt("", L("Yandan", "Side")), Opt("chase", L("Arkadan", "Chase")), Opt("pacman", "Pac-Man"))
     val lineColors = listOf("#00E5FF", "#FF3B30", "#39FF14", "#FFD60A", "#FF7AB6", "#FFFFFF", "#7C4DFF", "#FF8C00")
 
     ModalBottomSheet(onDismissRequest = onClose, containerColor = Brand.card) {
@@ -55,6 +57,7 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
             Picker(L("Süre", "Duration"), speeds, speed) { speed = it }
             Picker(L("En-boy", "Aspect"), aspects, aspect) { aspect = it }
             Picker(L("Kamera mesafesi", "Camera distance"), cams, cam) { cam = it }
+            if (mode == "3d") Picker(L("Kamera açısı", "Camera angle"), camAngles, camAngle) { camAngle = it }   // sadece 3D: yandan/arkadan/pacman
             val musicOpts = listOf(Opt("", L("Yok", "None"))) + stock.map { Opt("stock:${it.first}", it.second) }
             Picker(L("Müzik", "Music"), musicOpts, music) { music = it }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -89,7 +92,7 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
                 onClick = {
                     busy = true
                     scope.launch {
-                        val ok = store.generate(from, to, type, mode, aspect, speed, cam, music, line)
+                        val ok = store.generate(from, to, type, mode, aspect, speed, cam, music, line, if (mode == "3d") camAngle else "")
                         busy = false
                         if (ok) onClose()
                     }

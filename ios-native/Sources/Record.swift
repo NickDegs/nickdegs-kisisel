@@ -34,6 +34,7 @@ struct GenerateSheet: View {
     @State private var localErr = false
     @State private var showPaywall = false
     @AppStorage("nd_camdist") private var camdist = "orta"   // kamera mesafesi yakın/orta/uzak (premium)
+    @AppStorage("nd_cammode") private var camMode = ""       // 3D kamera açısı: ""=yandan, chase=orta arkadan, pacman=agresif tam arkadan (premium, sadece 3D)
     @State private var stock: [[String:String]] = []
     @State private var music = ""               // "", "stock:<id>", "upload"
     @State private var showAudioPicker = false
@@ -95,6 +96,24 @@ struct GenerateSheet: View {
                          : L("Kamera mesafesi Premium ile seçilebilir.",
                              "Camera distance is a Premium option."))
                         .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)
+
+                    // KAMERA AÇISI (sadece 3D · Google, premium): takip açısı — yandan / arkadan / agresif Pac-Man
+                    if mode == "3d" {
+                        field(L("Kamera açısı","Camera angle"))
+                        Picker("", selection: Binding(
+                            get: { premium ? camMode : "" },
+                            set: { v in if premium { camMode = v } else { showPaywall = true } })) {
+                            Text(L("Yandan","Side")).tag("")
+                            Text(L("Arkadan","Chase")).tag("chase")
+                            Text(L("Pac-Man","Pac-Man")).tag("pacman")
+                        }.pickerStyle(.segmented)
+                        Text(premium
+                             ? L("Yandan: klasik yan takip. Arkadan: tam arkadan hafif yukarıdan. Pac-Man: en yakından, sokak üstünde oyun-tarzı tam arkadan takip.",
+                                 "Side: classic. Chase: from directly behind, slightly above. Pac-Man: closest, street-level game-style chase.")
+                             : L("Kamera açısı Premium ile seçilebilir.",
+                                 "Camera angle is a Premium option."))
+                            .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)
+                    }
 
                     field(L("Görünüm","Style"))
                     modeRow("flat", L("Düz","Flat"), free: true)
@@ -167,9 +186,9 @@ struct GenerateSheet: View {
                             // Telefon yorulmaz, uygulama kapatılabilir (sıfır cihaz yükü).
                             let ok = rideId == nil
                                 ? await store.generateRide(from: from, to: to, type: type, mode: mode,
-                                                           aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist)
+                                                           aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist, cam: mode == "3d" ? camMode : "")
                                 : await store.regenerateRide(rideId!, type: type, mode: mode,
-                                                             aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist)
+                                                             aspect: aspect, premium: premium, speed: speed, music: music, line: lineColor, camdist: camdist, cam: mode == "3d" ? camMode : "")
                             sending = false; done = ok; localErr = !ok
                             // başarılı -> Videolarım'a geç + sheet kapat; video orada "Hazırlanıyor" kilitli görünür
                             if ok { store.jumpToVideos = true; try? await Task.sleep(for: .seconds(1.2)); dismiss() }
