@@ -105,11 +105,11 @@ struct GenerateSheet: View {
                             set: { v in if premium { camMode = v } else { showPaywall = true } })) {
                             Text(L("Yandan","Side")).tag("")
                             Text(L("Arkadan","Chase")).tag("chase")
-                            Text(L("Pac-Man","Pac-Man")).tag("pacman")
+                            Text(L("Sokak","Street")).tag("pacman")
                         }.pickerStyle(.segmented)
                         Text(premium
-                             ? L("Yandan: klasik yan takip. Arkadan: tam arkadan hafif yukarıdan. Pac-Man: en yakından, sokak üstünde oyun-tarzı tam arkadan takip.",
-                                 "Side: classic. Chase: from directly behind, slightly above. Pac-Man: closest, street-level game-style chase.")
+                             ? L("Yandan: klasik yan takip. Arkadan: tam arkadan hafif yukarıdan. Sokak: gerçek Google Street View — geçtiğin caddeyi ilk-kişi sokak görüntüsüyle gezer (ekstra ücretli).",
+                                 "Side: classic. Chase: from directly behind, slightly above. Street: real Google Street View — drives your route in first-person street imagery (extra cost).")
                              : L("Kamera açısı Premium ile seçilebilir.",
                                  "Camera angle is a Premium option."))
                             .font(.caption2).foregroundStyle(premium ? .secondary : Brand.accent)

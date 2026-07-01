@@ -46,7 +46,7 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
         Opt("slow", L("Uzun", "Long")), Opt("auto", L("Otonom", "Auto")))
     val aspects = listOf(Opt("16:9", "16:9"), Opt("9:16", "9:16"))
     val cams = listOf(Opt("yakin", L("Yakın", "Near")), Opt("orta", L("Orta", "Medium")), Opt("uzak", L("Uzak", "Far")))
-    val camAngles = listOf(Opt("", L("Yandan", "Side")), Opt("chase", L("Arkadan", "Chase")), Opt("pacman", "Pac-Man"))
+    val camAngles = listOf(Opt("", L("Yandan", "Side")), Opt("chase", L("Arkadan", "Chase")), Opt("pacman", L("Sokak", "Street")))   // Sokak = Google Street View (ekstra ücretli)
     val lineColors = listOf("#00E5FF", "#FF3B30", "#39FF14", "#FFD60A", "#FF7AB6", "#FFFFFF", "#7C4DFF", "#FF8C00")
 
     ModalBottomSheet(onDismissRequest = onClose, containerColor = Brand.card) {
