@@ -66,6 +66,31 @@ fun PaywallScreen(store: Store, onClose: () -> Unit) {
         Spacer(Modifier.height(10.dp))
         PlanCard(L("Aylık", "Monthly"), billing.priceOf(billing.monthly), null, sel == 0) { sel = 0 }
 
+        // ULTRA yükseltme (Play'de ürün varsa): Google 3D + kamera modları + Street View
+        if (billing.ultraYearly != null || billing.ultraMonthly != null) {
+            Spacer(Modifier.height(16.dp))
+            Text(L("Ultra — Google 3D + Street View", "Ultra — Google 3D + Street View"),
+                color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(L("Foto-gerçekçi Google 3D, tüm kamera açıları ve gerçek Street View sürüş.",
+                   "Photorealistic Google 3D, all camera angles and real Street View driving."),
+                color = Color(0xFF9AA4B2), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp, bottom = 8.dp))
+            billing.ultraYearly?.let { uy ->
+                Button(onClick = { activity?.let { billing.buy(it, uy) } }, enabled = billing.ready,
+                    colors = ButtonDefaults.buttonColors(containerColor = Brand.accent),
+                    modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    Text(L("Ultra Yıllık", "Ultra Yearly") + "   " + billing.priceOf(uy), fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+            billing.ultraMonthly?.let { um ->
+                Button(onClick = { activity?.let { billing.buy(it, um) } }, enabled = billing.ready,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2A3340)),
+                    modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                    Text(L("Ultra Aylık", "Ultra Monthly") + "   " + billing.priceOf(um))
+                }
+            }
+        }
+
         Spacer(Modifier.weight(1f))
         Button(
             onClick = { activity?.let { billing.buy(it, if (sel == 1) billing.yearly else billing.monthly) } },

@@ -19,6 +19,8 @@ class Billing(
 ) {
     var monthly by mutableStateOf<Pair<ProductDetails, String>?>(null)   // (ürün, offerToken)
     var yearly by mutableStateOf<Pair<ProductDetails, String>?>(null)
+    var ultraMonthly by mutableStateOf<Pair<ProductDetails, String>?>(null)   // ULTRA: Google 3D + kameralar + Street View
+    var ultraYearly by mutableStateOf<Pair<ProductDetails, String>?>(null)
     var boost by mutableStateOf<ProductDetails?>(null)                   // consumable; Play'de yoksa null kalır (buton gizli)
     var ready by mutableStateOf(false)
 
@@ -55,6 +57,21 @@ class Billing(
                 when {
                     period.contains("Y") || offer.basePlanId.contains("year") -> yearly = p to offer.offerToken
                     period.contains("M") || offer.basePlanId.contains("month") -> monthly = p to offer.offerToken
+                }
+            }
+        }
+        // ULTRA subscription (Play'de yoksa list boş -> null kalır, buton gizli)
+        val uparams = QueryProductDetailsParams.newBuilder().setProductList(
+            listOf(QueryProductDetailsParams.Product.newBuilder()
+                .setProductId("ultra").setProductType(BillingClient.ProductType.SUBS).build())
+        ).build()
+        client.queryProductDetailsAsync(uparams) { _, list ->
+            val p = list.firstOrNull() ?: return@queryProductDetailsAsync
+            p.subscriptionOfferDetails?.forEach { offer ->
+                val period = offer.pricingPhases.pricingPhaseList.lastOrNull()?.billingPeriod ?: ""
+                when {
+                    period.contains("Y") || offer.basePlanId.contains("year") -> ultraYearly = p to offer.offerToken
+                    period.contains("M") || offer.basePlanId.contains("month") -> ultraMonthly = p to offer.offerToken
                 }
             }
         }

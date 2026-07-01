@@ -38,6 +38,7 @@ class Store(app: Application) : AndroidViewModel(app) {
     var me by mutableStateOf("")
     var displayName by mutableStateOf("")
     var premium by mutableStateOf(prefs.getBoolean("nd_premium", false))
+    var ultra by mutableStateOf(prefs.getBoolean("nd_ultra", false))   // Ultra tier: Google 3D + kamera modları + Street View
     var loginError by mutableStateOf(false)
 
     // Açılış kapısı: token yoksa giriş; varsa SUNUCUDA doğrulanana kadar CHECKING.
@@ -57,7 +58,7 @@ class Store(app: Application) : AndroidViewModel(app) {
                 val rc = c.responseCode
                 if (rc == 200) {
                     val o = JSONObject(c.inputStream.bufferedReader().readText())
-                    me = o.optString("username", me); persistPremium(o.optBoolean("premium", premium))
+                    me = o.optString("username", me); persistPremium(o.optBoolean("premium", premium)); persistUltra(o.optBoolean("ultra", ultra))
                 }
                 rc
             } catch (e: Exception) { -1 }
@@ -102,6 +103,9 @@ class Store(app: Application) : AndroidViewModel(app) {
     }
     fun persistPremium(v: Boolean) {
         premium = v; prefs.edit().putBoolean("nd_premium", v).apply()
+    }
+    fun persistUltra(v: Boolean) {
+        ultra = v; prefs.edit().putBoolean("nd_ultra", v).apply()
     }
     fun signOut() { persistToken(""); prefs.edit().remove("nd_token").apply(); auth = AuthState.NEED_LOGIN }
 
@@ -150,7 +154,7 @@ class Store(app: Application) : AndroidViewModel(app) {
         displayName = o.optString("name", displayName)
         val av = o.optJSONObject("avatar")
         avatarEmoji = if (av?.optString("type") == "emoji") av.optString("value", "") else ""
-        persistPremium(o.optBoolean("premium", premium))
+        persistPremium(o.optBoolean("premium", premium)); persistUltra(o.optBoolean("ultra", ultra))
     }
 
     suspend fun setAvatarEmoji(emoji: String): Boolean {

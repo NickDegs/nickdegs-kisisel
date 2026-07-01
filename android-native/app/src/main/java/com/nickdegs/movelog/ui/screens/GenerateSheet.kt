@@ -57,7 +57,12 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
             Picker(L("Süre", "Duration"), speeds, speed) { speed = it }
             Picker(L("En-boy", "Aspect"), aspects, aspect) { aspect = it }
             Picker(L("Kamera mesafesi", "Camera distance"), cams, cam) { cam = it }
-            if (mode == "3d") Picker(L("Kamera açısı", "Camera angle"), camAngles, camAngle) { camAngle = it }   // sadece 3D: yandan/arkadan/pacman
+            if (mode == "3d") {   // sadece 3D · kamera açısı: yandan/arkadan/Sokak(Street View) — ULTRA
+                if (store.ultra) Picker(L("Kamera açısı", "Camera angle"), camAngles, camAngle) { camAngle = it }
+                else Text(L("Kamera açıları (Arkadan, Sokak/Street View) Ultra pakete dahildir.",
+                           "Camera angles (Chase, Street View) are included in Ultra."),
+                           color = Color(0xFF9AA4B2), fontSize = 12.sp)
+            }
             val musicOpts = listOf(Opt("", L("Yok", "None"))) + stock.map { Opt("stock:${it.first}", it.second) }
             Picker(L("Müzik", "Music"), musicOpts, music) { music = it }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
