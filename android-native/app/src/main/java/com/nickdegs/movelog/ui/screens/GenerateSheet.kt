@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
@@ -66,6 +67,14 @@ fun GenerateSheet(store: Store, from: Double, to: Double, type: String, onClose:
                         .border(if (line == "none") 3.dp else 0.dp, Color.White, androidx.compose.foundation.shape.CircleShape)
                         .clickable { line = "none" }, contentAlignment = Alignment.Center) {
                         Icon(Icons.Filled.Block, L("Çizgisiz", "No line"), tint = Color(0xFF9AA4B2), modifier = Modifier.size(18.dp))
+                    }
+                    // Liquid glass (şeffaf frosted çizgi) seçeneği
+                    Box(Modifier.size(34.dp)
+                        .clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color(0x66FFFFFF), Color(0x22AEE6FF))))
+                        .border(if (line == "glass") 3.dp else 1.dp, if (line == "glass") Color.White else Color(0x88FFFFFF), androidx.compose.foundation.shape.CircleShape)
+                        .clickable { line = "glass" }, contentAlignment = Alignment.Center) {
+                        Icon(Icons.Filled.WaterDrop, L("Cam", "Glass"), tint = Color(0xCCFFFFFF), modifier = Modifier.size(17.dp))
                     }
                     lineColors.forEach { hex ->
                         Box(Modifier.size(34.dp)

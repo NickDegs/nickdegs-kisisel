@@ -115,6 +115,13 @@ struct GenerateSheet: View {
                         }
                         .overlay(Circle().strokeBorder(.white, lineWidth: lineColor == "none" ? 3 : 0))
                         .onTapGesture { lineColor = "none" }
+                        // Liquid glass (şeffaf frosted çizgi)
+                        ZStack {
+                            Circle().fill(LinearGradient(colors: [.white.opacity(0.45), Color(hex: "#AEE6FF").opacity(0.18)], startPoint: .topLeading, endPoint: .bottomTrailing)).frame(width: 30, height: 30)
+                            Image(systemName: "drop.fill").font(.system(size: 13)).foregroundStyle(.white.opacity(0.85))
+                        }
+                        .overlay(Circle().strokeBorder(.white.opacity(lineColor == "glass" ? 1 : 0.5), lineWidth: lineColor == "glass" ? 3 : 1))
+                        .onTapGesture { lineColor = "glass" }
                         ForEach(["#00E5FF","#FF3B30","#39FF14","#FFD60A","#FF7AB6","#FFFFFF","#7C4DFF","#FF8C00"], id: \.self) { hex in
                             Circle().fill(Color(hex: hex))
                                 .frame(width: 30, height: 30)
